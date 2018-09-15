@@ -1,0 +1,237 @@
+---
+title: "Homework 3"
+author: "Jeff Tilton"
+date: "9/7/2018"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Question 5.1
+##### Using crime data from the file uscrime.txt (http://www.statsci.org/data/general/uscrime.txt, description at http://www.statsci.org/data/general/uscrime.html), test to see whether there are any outliers in the last column (number of crimes per 100,000 people). Use the grubbs.test function in the outliers package in R.
+
+#### Data
+```{r, echo=TRUE}
+library(kableExtra)
+library(data.table)
+raw = read.table('uscrime.txt', header = TRUE, sep = '\t')
+range01 = function(x){(x-min(x))/(max(x)-min(x))}
+data = as.data.table(apply(raw, 2, range01))
+
+dims = dim(data)
+
+kable(head(data))
+```
+
+The data is a `r dims[1]` by `r dims[2]` table that I have scaled between 0 and 1 by column.
+
+#### Goal
+The goal of this exercise is to find any outliers with the grubbs.test function in the outliers package.  
+
+
+#### Visualize Data
+```{r, echo=TRUE}
+library(gridExtra)
+library(ggplot2)
+bp = ggplot(data, aes(y = data$Crime)) + geom_boxplot()
+hist = ggplot(data=data, aes(data$Crime)) + geom_histogram()
+grid.arrange(bp,hist, nrow = 1)
+```
+
+The boxplot and histogram show that there may be an outlier in the dataset.  However, it is important to state that no value, no matter how extreme, is necessarily an outlier.  The extreme value is part of the dataset and may be critical data in understanding an extrema.  The goal of this exercise is to determine if there is an outlier in the statistical sense through hypothesis testing.  The grubbs test will let us know if we can reject the null, there are no outliers, and conclude that the most extreme point is a statistical outlier.
+
+##### grubbs.test Description
+Performs Grubbs' test for one outlier, two outliers on one tail, or two outliers on opposite tails, in small sample.
+
+```{r, echo=TRUE}
+library(outliers)
+x = data$Crime
+type = 10
+
+grubbs.test(x=x,type=type)
+```
+
+#### Discussion
+
+Although we did not set an alpha value, the p-value is small enough that it is not unreasonable to conclude that an outlier exists.  Therefore we can reject the null hypothesis, there is no outlier, and accept the alternative, the highest value 1 is an outlier.
+
+
+## Question 6.1
+##### Describe a situation or problem from your job, everyday life, current events, etc., for which a Change Detection model would be appropriate. Applying the CUSUM technique, how would you choose the critical value and the threshold?
+
+I work as a hydraulic engineer in an office that controls dams on a major US river.  Part of the job is to control how much a dam spills.  Although a dam does not produce energy when it spills, there is a higher fish survival rate when they go over the dam than throguh the turbines.  Spill has an effect on the total dissolved gas (TDG) of the river water, whcih can harm the fish.  Therefore spill will go up and down depending on the TDG levels.  The CUSUM method can be used to determine if a particular action (spill reduction) has improved the TDG levels in the river.  Determining the critical value and threchold would be determined through a partnership with fish biologists and water quality experts.
+
+## Question 6.2
+##### Using July through October daily-high-temperature data for Atlanta for 1996 through 2015, use a CUSUM approach to identify when unofficial summer ends (i.e., when the weather starts cooling off) each year. You can get the data that you need from the file temps.txt or online, for example at http://www.iweathernet.com/atlanta-weather-records or https://www.wunderground.com/history/airport/KFTY/2015/7/1/CustomHistory.html . You can use R if you’d like, but it’s straightforward enough that an Excel spreadsheet can easily do the job too.
+
+#### Data
+```{r, echo=TRUE}
+
+temps = data.frame(read.table('temps.txt', header = TRUE, sep = '\t'))
+names(temps) = append(c('DAY'),as.character(c(1996:2015)))
+yearly_mean = data.frame(year = 1996:2015, temp = colMeans(temps[,2:length(temps)]))
+temps$mean = rowMeans(temps[,2:length(temps)])
+
+dims = dim(temps)
+kable(head(temps))
+```
+
+#### Goal
+The goal of this exercise is to use a CUSUM approach to identify when unofficial summer ends.
+
+
+
+#### Visualize Data
+```{r, echo=TRUE}
+
+library(tidyr)
+library(reshape2)
+
+get_legend<-function(myggplot){
+  tmp <- ggplot_gtable(ggplot_build(myggplot))
+  leg <- which(sapply(tmp$grobs, function(x) x$name) == "guide-box")
+  legend <- tmp$grobs[[leg]]
+  return(legend)
+}
+
+
+temps_long = melt(temps, id = 'DAY')
+temps_long$DAY = as.Date(temps_long$DAY, "%d-%B")
+size = c(rep(.2, length(temps)-2))
+size[length(temps)-1] =.75
+
+p = ggplot(data = temps_long, 
+           aes(x = DAY, y = value, colour = variable, size =variable)) +
+            geom_line() +
+            scale_size_manual(values=size) + 
+            theme(legend.position="bottom")
+legend = get_legend(p)
+p = p + theme(legend.position="none")
+
+p_yearly = ggplot(data = yearly_mean, 
+           aes(x = year, y = temp)) +
+            geom_line()
+
+
+bp = ggplot(temps_long, aes(x = variable, y = temps_long$value)) + geom_boxplot()
+
+
+grid.arrange(p,legend,bp,p_yearly, ncol=1)
+
+
+
+```
+
+
+
+
+#### CUMSUM 
+$$S_t = max\{0, S_{t-1} + (\mu - X_t -C)\}$$
+
+Looking at the plot of temperatures through the season, the mean of all years looks to drop in mid August.  I plan on running the CUSUM algorithm on the mean data.  Because the C and t values are arbitrary, I will try and find a combination that gives me a change around mid August for the mean and see how well that works for the other years.
+
+```{r, echo=TRUE}
+library(tidyr)
+library(zoo)
+s = temps[2]
+
+
+cusum = function(s, C, decrease = FALSE, MEAN = FALSE){
+  x = 1
+  if (decrease){
+    x = -1
+  }
+  if (MEAN){
+    s_mean = MEAN
+  }else{
+    s_mean = sum(s)/length(s)
+  }
+  s_t = 0
+  l = c(s_t)
+  for(t in 2:length(s)){
+    s_t = max(0, s_t + (s[t]*x - s_mean*x - C))
+    l[t] = s_t
+  } 
+  return(l)
+}
+
+
+t = 2
+C = 3
+MEAN = sum(temps$mean)/nrow(temps)
+
+change = apply(temps[2:length(temps)], 2, cusum, C= C, decrease = TRUE, MEAN = MEAN) %>%
+        as.data.frame
+change$DAY = temps$DAY
+
+
+change_day = as.data.frame(change[1:length(change)-1]>t)
+get_true = function(v){
+  return(min(which(v == TRUE)))
+}
+
+index = apply(change_day, 2, get_true)
+days = change$DAY[index]
+year = c(as.character(seq(1996, 2015, 1)))
+year[length(year)+1] = 'mean'
+change_df = data.frame(year = year, days = days)
+
+
+
+# Use a rolling mean on the s_t values 
+#to see that summer has truly ended and 
+#that a cold front hadn't just come through
+
+window = 10
+
+roll = rollmean(
+  as.zoo(change[1:length(change)-1]), 
+  window, align = 'center')
+
+roll = roll>t
+roll$day = as.vector(change$DAY)
+roll = drop_na(as.data.frame(roll))
+
+
+roll_index = apply(roll[1:length(roll)-1], 2, get_true)
+roll_days = roll$day[index]
+roll_df = data.frame(year = year, days = roll_days)
+
+
+
+df = data.frame(year = roll_df$year, change = change_df$days, roll = roll_df$days)
+
+
+kable(df)
+```
+
+#### Discussion
+
+I ran several combinations of C and t, but I was not able to get the mean to show a change in mid august even with C and t set to 0.  I then settled on finding a C, t combination that gave me days around the August September range.  There were still quite a few July values as well, however.
+
+I next decided to use a rolling average on the s_t values as well.  The reason is I thought a cold front could have moved in for a day or two, maybe a rain storm, but not truly an end of summer.  This did not have a dramatic effect on any of the years, so maybe the first day value is acceptable.
+
+Lastly, I decided to use the mean of all years, which might be considered the expected value of this dataset and ran the CUSUM again.  This gave me a result that fit with what I would expect.  There were more Augusts and Septembers, fewer July's.  I understand that I would not have this value oahead of time for the majority of these dates, but I could use it moving forward.
+
+
+
+
+
+##### Use a CUSUM approach to make a judgment of whether Atlanta’s summer climate has gotten warmer in that time (and if so, when).
+
+```{r, echo=TRUE}
+
+t = 0
+C = 1
+
+kable(data.frame(year = year[1:20], change  = cusum(yearly_mean$temp, C=C) > t))
+
+
+```
+##### Discussion
+I gave a very low threshold for t and c on this exercise because I felt yearly temperatures are going to be much more stable than seasonal ones.  It looks like yearly temperatures began to increase in earnest starting in 2010.
+
