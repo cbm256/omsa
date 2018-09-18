@@ -1,0 +1,322 @@
+---
+title: "hw_4"
+author: "Jeff Tilton"
+date: "9/15/2018"
+output:
+  rmarkdown::pdf_document:
+    fig_caption: yes        
+    includes:  
+      in_header: preamble-latex.tex
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, fig.pos= "H")
+```
+
+# Question 7.1
+
+Describe a situation or problem from your job, everyday life, current events, etc., for which exponential smoothing would be appropriate. What data would you need? Would you expect the value of $\alpha$ (the first smoothing parameter) to be closer to 0 or 1, and why?
+
+## Response
+
+Time series data have inherent randomness that can make it difficult to understand the underlying signal.  
+An observer has to consider if a new value that is different than the baseline data is a true change or just a random event.  Exponential smoothing is a method that balances these considerations in 2 ways.
+
+1. We may consider the observed value as a true change in the baseline.  Therefore:
+
+$$S_t = x_t$$
+2. Or we might think that there is no change to the baseline and that the observed change is just due to randomness.  Therefore:
+
+$$S_t = S_{t-1}$$
+Exponential smoothing combines the two with the $\alpha$ coefficient.
+
+
+$$S_t = \alpha X_t + (1 - \alpha) S_{t-1}$$
+The coefficient is used to determine which is more likely, the change is a true change ($S_t = x_t$) then $\alpha$ will be closer to 1.  Or the change is due to randomness ($S_t = S_{t-1}$) $\alpha$ is closer to 0.
+
+This modeling technique can be used in any time series problem.  I work as an hydraulic engineer in reservoir control office.  Dams often need to spill to decrease fish mortality.  Spill, however, increases the total dissolved gas (TDG) in the river, which also increases fish mortality.  Gages that read TDG values are noisy due to the turbulence spill creates.  Exponential smoothing can be used to create a better understanding of the baseline.
+
+
+# Question 7.2
+
+Using the 20 years of daily high temperature data for Atlanta (July through October) from Question 6.2 (file temps.txt), build and use an exponential smoothing model to help make a judgment of whether the unofficial end of summer has gotten later over the 20 years. (Part of the point of this assignment is for you to think about how you might use exponential smoothing to answer this question. Feel free to combine it with other models if you’d like to. There’s certainly more than one reasonable approach.)
+
+Note: in R, you can use either HoltWinters (simpler to use) or the smooth package’s es function (harder to use, but more general). If you use es, the Holt-Winters model uses model=”AAM” in the function call (the first and second constants are used “A”dditively, and the third (seasonality) is used “M”ultiplicatively; the documentation doesn’t make that clear).
+
+## Response
+
+### Data Visualization
+
+
+```{r, echo=FALSE, message=FALSE, fig.cap="\\label{fig:figs}Atlanta (July through October) daily high temperature data",  fig.height=6}
+
+library(tidyr)
+library(reshape2)
+library(ggplot2)
+library(gridExtra)
+temps = data.frame(read.table('temps.txt', header = TRUE, sep = '\t'))
+names(temps) = append(c('DAY'),as.character(c(1996:2015)))
+yearly_mean = data.frame(year = 1996:2015, temp = colMeans(temps[,2:length(temps)]))
+temps$mean = rowMeans(temps[,2:length(temps)])
+dims = dim(temps)
+
+
+get_legend<-function(myggplot){
+  tmp <- ggplot_gtable(ggplot_build(myggplot))
+  leg <- which(sapply(tmp$grobs, function(x) x$name) == "guide-box")
+  legend <- tmp$grobs[[leg]]
+  return(legend)
+}
+
+
+temps_long = melt(temps, id = 'DAY')
+temps_long$DAY = as.Date(temps_long$DAY, "%d-%B")
+size = c(rep(.2, length(temps)-2))
+size[length(temps)-1] =.75
+
+p = ggplot(data = temps_long, 
+           aes(x = DAY, y = value, colour = variable, size =variable)) +
+            geom_line() +
+            scale_size_manual(values=size) + 
+            theme(legend.position="bottom") +
+            xlab('Date') +
+            ylab('Temp (F)')
+  
+legend = get_legend(p)
+p = p + theme(legend.position="none")
+
+p_yearly = ggplot(data = yearly_mean, 
+           aes(x = year, y = temp)) +
+            geom_line()+
+            xlab('Year') +
+            ylab('Temp (F)')
+
+
+bp = ggplot(temps_long, aes(x = variable, y = temps_long$value)) + 
+            geom_boxplot()+
+            xlab('Year') +
+            ylab('Temp (F)')
+
+
+grid.arrange(p,legend,bp,p_yearly, ncol=1)
+
+
+
+```
+
+
+
+
+Figure \ref{fig:figs} From top to bottom: (1) Daily temperature Atlanta highs from 1996 to 2015 as well as mean daily highs.  (2) Atalanta yearly spread of daily high temperatures from July - October. (3) Atalanta yearly mean temperature.
+
+The mean daily temperature highs, seen above, is relatively stable.  Any given year has a considerable amount of randomness, which can be seen in the daily temperature highs and the yearly spread.  There are many values below the 75th qualntile in the majority of years seen in both the boxplots and the downward spikes in plot 1.  
+
+The unofficial end of summer, defined as when the weather starts to cool off each summer in Atlanta occurs sometime in mid August. The mean daily temperature highs dip within that timeframe.
+
+### Goals
+
+This exercise has 1 goal:
+
+  1. Make a judgment of whether the unofficial end of summer has gotten later over the 20 years
+
+### Method
+
+
+  1. Create smoothed series for each year using Holt-Winters
+  3. Use Cusum on smoothed series to determine when official summer ends for each year
+  3. Collect th first date where $S_t >= T$
+  4. See if official end of summer has gotten later 
+
+### Assumptions 
+I assume daily temperature values to be random throughout the year.  Therefore I will use higher c and t values for the CUSUM algorithm.
+
+#### CUSUM
+$$S_t = max\{0, S_{t-1} + (\mu - X_t -C)\}$$
+I will set $c = 4$ and $t = 7$.  I will take the mean of all years through August 10th for $\mu$. 
+
+```{r, echo=FALSE, message=FALSE}
+library(zoo)
+library(kableExtra)
+smoothed = function(x){
+    hw = ts(x, frequency = length(x)) %>%
+      HoltWinters(., beta = FALSE, gamma = FALSE)
+    vals = fitted(hw)[1:nrow(temps)]
+    return(vals)
+}
+
+smooth = apply(temps[,2:22], 2,smoothed) %>%
+        as.data.frame(.)
+
+
+
+
+
+cusum = function(s, C, decrease = FALSE, MEAN = FALSE){
+  x = 1
+  if (decrease){
+    x = -1
+  }
+  if (MEAN){
+    s_mean = MEAN
+  }else{
+    s_mean = sum(s)/length(s)
+  }
+  s_t = 0
+  l = c(s_t)
+  for(t in 2:length(s)){
+    s_t = max(0, s_t + (s[t]*x - s_mean*x - C))
+    l[t] = s_t
+  } 
+  return(l)
+}
+
+t = 7
+C = 4
+MEAN = sum(temps$mean[1:41])/41
+
+
+
+change = apply(smooth[1:nrow(temps),], 2, cusum, C= C, decrease = TRUE, MEAN = MEAN) %>%
+        as.data.frame(.) 
+change$DAY = temps$DAY
+
+
+change_day = as.data.frame(change[1:length(change)-1]>t)
+get_true = function(v){
+  return(min(which(v == TRUE)))
+}
+
+index = apply(change_day, 2, get_true)
+days = change$DAY[index]
+year = c(as.character(seq(1996, 2015, 1)))
+year[length(year)+1] = 'mean'
+change_df = data.frame(year = year, days = days)
+
+
+
+
+
+```
+
+### Results
+The below table is the first day in each year when $S_t >= T$.  
+
+```{r echo=FALSE}
+kable(change_df)
+
+```
+
+### Discussion
+
+I am not sure if the method I have chosen is extremely robust.  I feel like I have been cherry picking the c and t values to get something that I want.  The above table does not seem to indicate that the unofficial end of summer is getting later in the year, but tends to jump around.  I look forward to seeing other solutions.
+
+
+# Just for Fun
+
+### Goals
+
+This exercise has 1 goal:
+
+  1. Determine if summers are getting hotter
+
+### Method
+
+  1.  Run the CUSUM method on the yearly mean and median time series
+  2.  Use the Holt-Winters function on each year to obtain individual $\alpha$ values
+  3.  Use the Holt-Winters function on the yearly mean and median time series to obtain individual $\alpha$ values
+
+### Assumptions
+
+I assume yearly mean and median values to be stable and even small increases in temperature are significant.  Therefore I will use low c and t values for the CUSUM algorithm.  If the CUSUM algorithm detects a change at a given year, and that year has a low $\alpha$ value then the change is not random and I can say that temperatures are increasing.  The $\alpha$ value is being used as a proxy for randomness.    
+
+
+
+```{r, echo=FALSE, message=FALSE, fig.height=6, fig.cap="\\label{fig:figs}Atlanta (July through October) Mean, median daily high temperatures and yearly alpha values for Holt-Winters"}
+library(smooth)
+library(magrittr)
+
+get_alphas = function(x){
+    hw = ts(x, frequency = length(x)) %>%
+      HoltWinters(., beta = FALSE, gamma = FALSE)
+    alpha = hw$alpha
+    return(alpha)
+}
+
+alphas = apply(temps[,2:21], 2,get_alphas) %>%
+          melt(.)
+
+yearly_med = temps[,2:21] %>%
+              apply(., 2, median) %>%
+              melt(.)
+
+p_median = ggplot(yearly_med, aes(x = c(seq(1996,2015, 1)), y = yearly_med$value)) + 
+            geom_line()+
+            xlab('Year') +
+            ylab('Temp (F)') +
+            theme(axis.title.x=element_blank(),
+                  axis.text.x=element_blank(),
+                  axis.ticks.x=element_blank())
+p_yearly = p_yearly +
+            theme(axis.title.x=element_blank(),
+                  axis.text.x=element_blank(),
+                  axis.ticks.x=element_blank())
+
+p_alpha = ggplot(alphas, aes(x = c(seq(1996,2015, 1)), y = alphas$value)) + 
+            geom_line()+
+            xlab('Year') +
+            ylab('Alpha')
+
+grid.arrange(p_yearly,p_median, p_alpha, ncol=1)
+
+
+
+```
+
+
+Figure \ref{fig:figs} From top to bottom: (1) Yearly mean Atlanta daily high temperatures from July - October. (2) Yearly mean Atlanta daily high temperatures from July - October.  (3) Yearly $\alpha$ value results from  Holt-Winters.
+
+The above plots suggest that on the coldest years, example 2008, are due to randomness because the corresponding $\alpha$ value is low.  Where the hottest year, 2011, has an $\alpha$ near 1, meaning the values are not random.
+
+
+#### CUSUM
+$$S_t = max\{0, S_{t-1} + (\mu - X_t -C)\}$$
+I will set $c = 2$ and $t = 1$.  I will use the series' mean value for $\mu$. 
+
+
+```{r, echo=FALSE, message=FALSE}
+
+
+
+t = 1
+C = 2
+
+med = cusum(yearly_med$value,C=C)>t
+mn = cusum(yearly_mean$temp,C=C) >t
+
+cusum_df = data.frame(year = c(seq(1996,2015, 1)), mean = mn, median = med)
+
+
+```
+
+
+
+*Table 1*: Results of the CUSUM algorithm on Atlanta yearly mean and median daily high temperature with $c = 2$ and $t = 1$
+
+```{r, echo=FALSE, message=FALSE}
+library(kableExtra)
+mean_alpha = round(get_alphas(ts(yearly_mean$temp, freq = 1)), 4)
+median_alpha = round(get_alphas(ts(yearly_med$value, freq = 1)), 2)
+kable(cusum_df)
+```
+
+
+
+The results from the CUSUM algorithm suggest that there is a temperature change starting in year 2010 and continuing through 2012 for both the mean and median series.  The corresponding $\alpha$ values are relatively high, between .7 and 1.  The remaining 3 years, 2013-2015 did not show a change.
+
+The corresponding $\alpha's$ for the mean and median series are `r mean_alpha` and `r median_alpha`.  Values this low indicate there is a significant amount of randomness in the data.
+
+### Discussion
+
+I cannot say with any amount of certainty that daily temperatures are increasing based on the above results.  Although the CUSUM algorithm detected a change for a few years, the change did not persist.  Furthermore the yearly mean and median series shows a significant amount of randomness that is not accounted for in this simplistic model.
+
+
