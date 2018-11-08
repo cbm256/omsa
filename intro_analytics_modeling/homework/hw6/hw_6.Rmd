@@ -1,0 +1,273 @@
+---
+title: "Homework 6"
+author: "Jeff Tilton"
+date: "9/29/2018"
+output:
+  rmarkdown::pdf_document:
+    fig_caption: yes        
+    includes:  
+      in_header: preamble-latex.tex
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, fig.pos= "H")
+```
+
+# Question 9.1
+
+Using the same crime data set uscrime.txt as in Question 8.2, apply Principal Component Analysis and then create a regression model using the first few principal components. Specify your new model in terms of the original variables (not the principal components), and compare its quality to that of your solution to Question 8.2. You can use the R function prcomp for PCA. (Note that to first scale the data, you can include scale. = TRUE to scale as part of the PCA function. Don’t forget that, to make a prediction for the new city, you’ll need to unscale the coefficients (i.e., do the scaling calculation in reverse)!)
+
+
+## Goals
+
+1. Perform Principal Component Analysis on Crime data
+2. Build a linear model with components
+3. Unscale coefficients of model
+4. Compare with previous homework results
+5. Predict crime for new city
+
+### Perform Principal Component Analysis on Crime data
+
+#### Method
+
+Use `prcomp(data, center = TRUE,  scale = TRUE)`, where center shifts variables to be zero centered and scale scales the variables to have unit variances before analysis.  I will eliminate the inidcator variable for a southern state predictor because it is binary and pca works well on data with a high variance.  
+```{r pca,  message=FALSE, echo = FALSE}
+
+
+data = as.data.frame(read.table('uscrime.txt', header = TRUE, sep = '\t'))[-2]
+pca = prcomp(data[,1:14], center = TRUE,  scale = TRUE)
+
+summary(pca)
+
+```
+
+The `prcomp` summary output shows that the components have been ranked by variance.  The proportion of variance can be interpreted as the percentage of variance that is explained by that component.  Therefore, cumulative proportion sums to one as shown.  
+
+
+### Build a linear model with components
+
+#### Method
+
+1.  Choose components to use
+2.  Build models using `lm` function.
+
+
+##### Choose components
+
+I will build 2 models to compare with the 2 homework 5 models I did.  The first model will use all components to compare with the homework 5 model that used all predictors.  The second model will use a subset of components to compare with the homework 5 model that limited the number of predictors by using the p-values.  I will decide which components to use by using an elbow plot. 
+
+
+```{r model_1,  message=FALSE, echo = FALSE}
+
+model_1_data = as.data.frame(pca$x)
+model_1_data$Crime = data$Crime
+model_1 = lm(Crime ~ ., data = model_1_data)
+model_1_summary = summary(model_1)
+
+model_1_R_sq = round(model_1_summary$r.squared, 2)
+model_1_adj_R_sq = round(model_1_summary$adj.r.squared, 2)
+```
+
+
+
+###### Model 2 Elbow Plot
+```{r model_2_plot,  message=FALSE, echo = FALSE}
+screeplot(pca, type = 'lines', col ='blue')
+```
+
+
+I will use the first 7 principal components for the second model because that is where the elbow plot levels out and is where 93% of the variance is explained.
+
+```{r model_2,  message=FALSE, echo = FALSE}
+
+model_2_data = as.data.frame(pca$x)[,1:7]
+model_2_data$Crime = data$Crime
+model_2 = lm(Crime ~ ., data = model_2_data)
+model_2_summary = summary(model_2)
+
+
+model_2_R_sq = round(model_2_summary$r.squared, 2)
+model_2_adj_R_sq = round(model_2_summary$adj.r.squared, 2)
+
+```
+
+
+```{r hw_5_models,  message=FALSE, echo = FALSE}
+
+raw = read.table('uscrime.txt', header = TRUE, sep = '\t')
+data = raw
+data$So = as.factor(data$So)
+hw_5_model_1 = lm(Crime~ ., data = data)
+hw_5_model_1_summary = summary(hw_5_model_1)
+
+hw_5_model_1_R_sq = round(hw_5_model_1_summary$r.squared, 2)
+hw_5_model_1_adj_R_sq = round(hw_5_model_1_summary$adj.r.squared, 2)
+
+
+
+hw_5_model_2 = lm(Crime~ M+Ed+U2+Ineq+Wealth+NW, data=raw)
+hw_5_model_2_summary = summary(hw_5_model_2)
+
+hw_5_model_2_R_sq = round(hw_5_model_2_summary$r.squared, 2)
+hw_5_model_2_adj_R_sq = round(hw_5_model_2_summary$adj.r.squared, 2)
+
+
+
+```
+
+### Unscale coefficients of model
+
+#### Method
+1. Convert the beta values to alphas
+2. Unscale the alphas
+
+
+##### Convert the beta values to alphas
+
+Beta values are the principal component coefficients from the linear regression model.  Thesee coefficients are related to the predictor coefficients (alphas), by $$a_j = \sum_{k=1}b_kv_{jk}$$,
+
+Where v are the eigenvector $$v_{jk} = X^TX$$ where X is the uscrime dataset.  The eigenvectors can be retrieved from the `prcomp` output as `pca$rotation`.  Scaled alphas are computed with matrix multiplication.
+
+##### Unscale the alphas
+
+Values are scaled by $$X_{ij,scaled} = (X_{ij,} - \mu_{ij})/\sigma_j$$
+
+
+Therefore $$a_{scaled}(x - \mu)/\sigma = ax$$
+
+I have previously centered and scaled the data so that the mean is equal to 0, and the x's cancel out therefore we are left with$$a = a_{sclaed}/\sigma$$
+
+Results are presented with the comparison to last week's homework.
+
+```{r scale,  message=FALSE, echo = FALSE}
+
+data = as.data.frame(read.table('uscrime.txt', header = TRUE, sep = '\t'))[-2]
+### get the scaled alpha values
+v = pca$rotation
+beta = c(model_1_summary$coefficients[2:15])
+alpha_scaled = v%*%beta
+
+### get mu and sigma to unscale
+mu = colMeans(data[,1:14])
+sigma = sapply(data[,1:14], sd)
+
+### unscale coefficients
+
+alpha = alpha_scaled/sigma
+
+intercept_scaled = model_1_summary$coefficients[1]
+intercept = intercept_scaled-sum(alpha*mu)
+
+
+
+
+```
+
+### Compare with previous homework results
+I performed a 5-fold cross validation on each model presented at the end.
+
+#### Results
+
+||HW5 model 1|HW5 model 2|HW6 model 1|HW6 model 2|
+|--|--|-------------|-----|----|
+|R^2^|`r hw_5_model_1_R_sq`|`r hw_5_model_2_R_sq`|`r model_1_R_sq`|`r model_2_R_sq`|
+|Adjusted R^2^|`r hw_5_model_1_adj_R_sq`|`r hw_5_model_2_adj_R_sq`|`r model_1_adj_R_sq`|`r model_2_adj_R_sq`|
+|CV MS|278973|90926|281898|478234|
+
+
+##### Coefficients
+
+```{r hw5_coefficients,  message=FALSE, echo = FALSE}
+library(kableExtra)
+coefs = cbind(Alpha.HW5 = round(hw_5_model_1_summary$coefficients[,1][2:16][-2],2), Alpha.HW6 = round(alpha[,1],2))
+kable(coefs)
+
+
+```
+
+
+
+### Predict crime for new city
+
+#### New city predictors
+
+- M = 14.0
+- So = 0
+- Ed = 10.0
+- Po1 = 12.0
+- Po2 = 15.5
+- LF = 0.640
+- M.F = 94.0
+- Pop = 150
+- NW = 1.1
+- U1 = 0.120
+- U2 = 3.6
+- Wealth = 3200
+
+#### Method
+1. Rerun the pca analysis using only the predictors for the new city
+2. Compute crime
+
+```{r new_city,  message=FALSE, echo = FALSE}
+data = as.data.frame(read.table('uscrime.txt', header = TRUE, sep = '\t'))[-2][-12][-12][-12]
+pca = prcomp(data[,1:11], center = TRUE,  scale = TRUE)
+
+model_data = as.data.frame(pca$x)
+model_data$Crime = data$Crime
+model = lm(Crime ~ ., data = model_data)
+model_summary = summary(model)
+
+model_R_sq = round(model_summary$r.squared, 2)
+model_adj_R_sq = round(model_summary$adj.r.squared, 2)
+
+
+
+### get the scaled alpha values
+v = pca$rotation
+beta = c(model_summary$coefficients[2:12])
+alpha_scaled = v%*%beta
+
+### get mu and sigma to unscale
+mu = colMeans(data[,1:11])
+sigma = sapply(data[,1:11], sd)
+
+### unscale coefficients
+
+alpha = alpha_scaled/sigma
+
+intercept_scaled = model_1_summary$coefficients[1]
+intercept = intercept_scaled-sum(alpha*mu)
+
+
+
+
+crime = round(14*9.94e+01 + 10*1.32e+02 + 12*1.86e+02 + 15.5*-1.05e+02 + .64*1.56e+02 + 94*3.51e+01 + 150*8.64e-01 + 1.1*4.03e+00+ .12*-8.38e+03 + 3.6*2.25e+02 + 3200*-7.53e-02 + intercept, 0)
+
+
+```
+The result was `r crime` offenses per 100,000 people.  
+
+## Discussion
+
+The results are interesting and not what I expected.  The first thing that stands out to me are the alpha values.  They are almost exactly the same as the previous homework.  I am not sure what I expected, but I thought after performing OLS on the transformed data, transforming it back would result in dramatically different coefficients because some of the data were collinear, but they were nearly identical.  
+
+Secondly, the PCA was not as good as a predictor as the OLS model.  The model with the lowest Mean Squared Error after cross validation was the predictor limited model from homework 5.  This model reduced the number of predictors by cutting values with p-values greater than .075.  Although it had the worst R-squared value it had a significantly better performance in cross validation.  This suggests that the other models have been overfit.  I really enjoyed this work.  I have struggled to understand PCA in the past, but this crystalized it.  The US crime data set does not seem to be the correct dataset to apply PCA to because it does not have a sufficient amount of data or predictors, but it has been an invaluable lesson to understand PCA.
+
+
+### Cross Validation 
+
+```{r model1_cv,  message=FALSE, echo=FALSE}
+library(DAAG)
+
+form.lm.1 = formula(Crime~.)
+form.lm.2 = formula(Crime~ M+Ed+U2+Ineq+Wealth+NW, data =raw)
+
+#hw5 model 1
+cv.lm(data = raw, form.lm=form.lm.1, m=5) 
+#hw5 model 2
+cv.lm(data = raw, form.lm=form.lm.2, m=5) 
+#hw6 model 1
+cv.lm(data = model_1_data, form.lm=form.lm.1, m=5) 
+#hw6 model 2
+cv.lm(data = model_2_data, form.lm=form.lm.1, m=5) 
+```

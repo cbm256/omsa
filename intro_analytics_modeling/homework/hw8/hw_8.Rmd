@@ -1,0 +1,278 @@
+---
+title: "Homework 8"
+author: "Jeff Tilton"
+date: "10/13/2018"
+output:
+  rmarkdown::pdf_document:
+    fig_caption: yes        
+    includes:  
+      in_header: preamble-latex.tex
+---
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, fig.pos= "H")
+```
+
+# Question 11.1
+
+Using the crime data set uscrime.txt from Questions 8.2, 9.1, and 10.1, build a regression model using:
+1. Stepwise regression
+2. Lasso
+3. Elastic net
+For Parts 2 and 3, remember to scale the data first – otherwise, the regression coefficients will be on different scales and the constraint won’t have the desired effect.
+
+## Goals
+1. Use 3 regression techniques (Stepwise, LASSO, and Elastic Net) on the US crime dataset
+2. Choose a model
+
+
+```{r data,  message=FALSE, echo = FALSE}
+library(data.table)
+raw = read.table('uscrime.txt', header = TRUE, sep = '\t')
+#range01 = function(x){(x-min(x))/(max(x)-min(x))}
+#data = as.data.table(apply(raw, 2, range01))
+data=raw
+```
+
+
+
+
+### Stepwise Regression
+Is a classic form of variable regression.  There are many forms, but one common technique is to add a new factor to the model and after adding each additional factor previously added factors are eliminated that no longer appear to be contributing to the model based on the p-value,  R^2^ or some other type of quality indicator.    
+
+
+
+### Lasso Regression
+
+LASSO regression uses the standard regression equation subject to a constraint on the coefficients as seen below.
+
+
+$$
+\begin{aligned}
+min &\sum_{i=1}^{n} (y_i - (a_0 + a_1x_{1i} + a_2x_{2i} +...+a_jx_{ji})^2\\
+s.t. &\sum_{i=1}^{j}|a_i|\leq\tau
+\end{aligned}
+$$
+
+
+where $\tau$ is picked at the user's discretion.  It is important to scale the data before performing LASSO because the units will artificially affect how big the coefficients need to be.  
+
+
+### Elastic Net Regression
+
+Constrains a combination of absolute value of coefficients and their squares
+
+$$
+\begin{aligned}
+min &\sum_{i=1}^{n} (y_i - (a_0 + a_1x_{1i} + a_2x_{2i} +...+a_jx_{ji})^2\\
+s.t. &\sum_{i=1}^{j}|a_i|+(1-\lambda)\sum_{i=1}^{j}a_{i}^2\leq\tau
+\end{aligned}
+$$
+
+### Choose the best model
+
+
+#### Method
+
+1.  Get model attributes using various regression techniques
+2.  Create new models  with the chosen predictors
+2.  Use 10-fold cross-validation to obtain mean squared error (mse)
+3.  Choose model with lowest mse
+
+
+```{r model_selection, results = 'hide', include = FALSE, message=FALSE, echo = FALSE}
+library(glmnet)
+
+## 75% of the sample size
+smp_size = floor(0.75 * nrow(data))
+
+## set the seed to make your partition reproducible
+set.seed(123)
+train_ind = sample(seq_len(nrow(data)), size = smp_size)
+
+train = data[train_ind, ]
+test = data[-train_ind, ]
+
+#stepwise model
+step_reg = step(lm(Crime~., data=train),direction="both")
+y_hat = predict(step_reg,test)
+y = test$Crime
+sr_mse = round(sum((y_hat-y)**2)/nrow(test), 4)
+
+#Notes: glmnet uses alpha for lambda and lambda for tau
+### Lasso Regression
+l_train= as.matrix(train)
+l_test = as.matrix(test)
+
+#set alpha to 1 bc the glmnet func is actually elastic net ranging
+#from  0 (ridge) to 1 (lasso)
+alpha = 1
+#use cv to get best lambda val
+l_cv = cv.glmnet(l_train[,-16], l_train[,16], 
+                 alpha = alpha,
+                 nfolds = 5,
+                 nlambda = 20,
+                 type.measure = 'mse',
+                 family='gaussian',
+                 standardize = TRUE)
+
+best_lasso_lambda = l_cv$lambda.min
+
+lasso = glmnet(l_train[,-16], l_train[,16], 
+               alpha = alpha, 
+               lambda = best_lasso_lambda)
+y_hat = predict(lasso, s = best_lasso_lambda, newx = l_test[,1:15])
+y = l_test[,16]
+lasso_mse = round(sum((y_hat-y)**2)/nrow(test), 4)
+
+
+### Elastic Net
+alphas = seq(0,1,by=.01)
+#set best_mse to infinite
+best_mse = 1/0
+best_alpha = 0
+
+#search for best alpha
+for(a in 1:length(alphas)){
+  alpha = alphas[a]
+  #use best lambda from lasso to make it easier
+  e_cv = cv.glmnet(l_train[,-16], l_train[,16], 
+                 alpha = alpha,
+                 nfolds = 5,
+                 nlambda = 20,
+                 type.measure = 'mse',
+                 family='gaussian',
+                 standardize = TRUE)
+  lambda = e_cv$lambda.min
+  y_hat = predict(e_cv, s = lambda, newx = l_test[,-16])
+  y = l_test[,16]
+  mse = sum((y_hat-y)**2)/nrow(test)
+  
+  if(mse<best_mse){
+    best_mse = mse
+    el_net_mse = best_mse
+    best_alpha = alpha
+    best_lambda = lambda
+    best_model = e_cv
+  }
+  
+  e_net = best_model
+  
+}
+
+
+#then go through cross validation, report aic, r^2 and mse
+```
+
+
+```{r coefficients, results = 'hide',  include = FALSE, message=FALSE, echo = FALSE}
+
+library(magrittr)
+#stepwise
+s_coeffs = variable.names(step_reg) %>%
+      .[2:length(.)]
+#lasso
+c_l = coef(lasso, s = best_lasso_lambda)
+l_coeffs = c_l@Dimnames[[1]][c_l@i + 1] %>%
+          .[2:length(.)]
+#elastic net
+e_l = coef(e_net, s = best_lambda)
+e_coeffs = e_l@Dimnames[[1]][e_l@i + 1] %>%
+          .[2:length(.)]
+
+c_l@Dimnames[[1]][c_l@i + 1]
+
+```
+
+
+
+
+```{r cross_validation, results = 'hide',  include = FALSE, message=FALSE, echo = FALSE}
+library(DAAG)
+
+formula_1 = formula(Crime~ .)
+
+
+#stepwise
+step_data = data[s_coeffs]
+step_data$Crime = data$Crime
+step_cv = cv.lm(data = step_data, form.lm=formula_1, m=10, printit = FALSE) 
+step_mse = formatC(attr(step_cv,'ms'), format = "e", digits = 2)
+
+#lasso
+lasso_data = data[l_coeffs]
+lasso_data$Crime = data$Crime
+lasso_cv = cv.lm(data = lasso_data, form.lm=formula_1, m=10, printit = FALSE) 
+lasso_mse = formatC(attr(lasso_cv,'ms'), format = "e", digits = 2)
+
+
+#elastic net
+e_data = data[e_coeffs]
+e_data$Crime = data$Crime
+e_cv = cv.lm(data = e_data, form.lm=formula_1, m=10, printit = FALSE) 
+e_mse = formatC(attr(e_cv,'ms'), format = "e", digits = 2)
+
+```
+```{r models, results = 'hide',  include = FALSE, message=FALSE, echo = FALSE}
+
+
+#stepwise
+step_model = lm(Crime ~., data = step_data) 
+step_summary = summary(step_model)
+step_adjusted_r_squared = round(step_summary$adj.r.squared, 2)
+step_r_squared = round(step_summary$r.squared, 2)
+
+#lasso
+lasso_model = lm(Crime ~., data = lasso_data) 
+lasso_summary = summary(lasso_model)
+lasso_adjusted_r_squared = round(lasso_summary$adj.r.squared, 2)
+lasso_r_squared = round(lasso_summary$r.squared, 2)
+
+#elastic net
+e_model = lm(Crime ~., data = e_data) 
+e_summary = summary(e_model)
+e_adjusted_r_squared = round(e_summary$adj.r.squared, 2)
+e_r_squared = round(e_summary$r.squared, 2)
+
+```
+
+
+## Final Models
+
+### Step Wise Regression
+
+```{r step_summary,   message=FALSE, echo = FALSE}
+
+step_summary
+
+```
+
+### Lasso Regression
+
+```{r lasso_summary,   message=FALSE, echo = FALSE}
+
+lasso_summary
+
+```
+
+
+### Elastic Net Regression
+
+```{r e_summary,   message=FALSE, echo = FALSE}
+
+e_summary
+
+```
+
+
+##Discussion 
+
+||Stepwise|LASSO|Elastic Net|
+|--|--|-------------|-------|
+|Cross-Validated MSE|`r step_mse`|`r lasso_mse`|`r e_mse`|
+|Final Model R^2^|`r step_r_squared`|`r lasso_r_squared`|`r e_r_squared`|
+|Final Model Adjusted R^2^|`r step_adjusted_r_squared`|`r lasso_adjusted_r_squared`|`r e_adjusted_r_squared`|
+
+
+Elastic Net had the lowest mse as seen in the table above and tied with LASSO for the lowest adjusted R^2^.  T
+
+Stepwise regression and LASSO both chose 8 predictors, but stepwise chose unemployment rate of urban males 35–39 (U2) and LASSO chose average time in months served by offenders in state prisons before their first release (Time), elastic ended up with the most predictors (11).  

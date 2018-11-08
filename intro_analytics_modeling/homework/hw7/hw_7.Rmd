@@ -1,0 +1,482 @@
+---
+title: "Homework 7"
+author: "Jeff Tilton"
+date: "10/6/2018"
+output:
+  rmarkdown::pdf_document:
+    fig_caption: yes        
+    includes:  
+      in_header: preamble-latex.tex
+---
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, fig.pos= "H")
+```
+
+# Question 10.1
+
+Using the same crime data set uscrime.txt as in Questions 8.2 and 9.1, find the best model you can
+using
+
+  - a regression tree model, and
+  - a random forest model.
+
+In R, you can use the tree package or the rpart package, and the randomForest package. For
+each model, describe one or two qualitative takeaways you get from analyzing the results (i.e., don’t just
+stop when you have a good model, but interpret it too).
+
+## Goals
+
+1. Create a regression tree model for the crime data
+    - Create a decision tree
+    - Use decision tree to create a regression for the leaf nodes
+2. Create a random forest model for crime data
+3. Choose the best model
+4. Interpret model
+
+### Regression tree model
+
+#### Method
+
+1.  Create a decision tree using the `tree` package`
+2.  Use cross-validation to determine an appropriate size of the tree
+3.  Create new pruned tree
+4.  Create regression models for the new tree leaves
+
+##### Create a decision tree
+
+###### Initial Tree
+
+
+```{r regression_tree,  message=FALSE, echo = FALSE}
+library(tree)
+library(rpart)
+library(rpart.plot)
+library(data.table)
+library(tidyverse)
+data = as.data.table(read.table('uscrime.txt', header = TRUE, sep = '\t'))
+model = tree(Crime ~ ., data = data)
+
+plot(model)
+text(model)
+
+get_r_squared = function(model){
+  #Compute R^2
+  #r^2 = 1 - SSR/SST
+  
+  y_hat = predict(model)
+  y = data$Crime
+  y_mean = mean(data$Crime)
+
+  ssr = sum((y_hat - y)**2)
+  sst = sum((y-y_mean)**2)
+  r_squared = round((1 - ssr/sst),2)
+  return(r_squared)
+}
+
+r_squared = get_r_squared(model)
+mse = round(mean((predict(model, data) - data$Crime)**2),2)
+mse =formatC(mse, format = "e", digits = 2)
+
+```
+
+The above tree is the initial tree created by the `tree` library with default settings.  It split 6 times and has 7 leaves.  I will call this model `initial`.
+
+
+
+```{r y_vs_y_hat,  message=FALSE, echo = FALSE}
+y_hat = predict(model)
+y = data$Crime
+plot(y_hat,y)
+```
+
+
+A plot of the `initial` predictions vs actual crime.  
+
+
+##### Cross Validate 
+
+```{r rt_cv,  message=FALSE, echo = FALSE}
+size = prune.tree(model)$size
+set.seed(42)
+
+dev = data.frame(k_1 = numeric(), k_2 = numeric(), k_3 = numeric(), 
+                            k_4 = numeric(), k_5 = numeric(), k_6 = numeric(), 
+                            k_7 = numeric())
+for(k in 1:1000){
+  d =  list(cv.tree(model)$dev)
+  for(i in 1:length(d[[1]])){
+   dev[k,i] = d[[1]][i]
+  }
+}
+
+deviance = colMeans(dev)
+plot(size, deviance)
+
+```
+
+
+A plot of of the tree size vs deviance after a 10,000 fold cross-validation.  A size 2 tree had the lowest deviance.  
+
+
+##### Pruned Tree
+
+```{r prune,  message=FALSE, echo = FALSE}
+model_pruned = prune.tree(model, best = 2)
+plot(model_pruned)
+text(model_pruned)
+
+y_hat = predict(model_pruned)
+y = data$Crime
+
+
+```
+
+
+A plot of the newly pruned size 2 tree chosen by cross-validation.
+
+
+##### Regression Leaves
+
+I created 4 regression tree models, 2 models for each leaf.  The first models regressed on all data, then I chose to reduce the predictors to predictors with a p-value < .075 and created two more models.  I ran 5-fold cross-validation on each model.  I will call these models `leaf 1`, `leaf 1 significant`, `leaf 2`, `leaf 2 significant`.
+
+```{r regression,  message=FALSE, echo = FALSE, include = FALSE}
+library(DAAG)
+#separate data
+reg1 = filter(data, Po1<7.65)
+reg2 = filter(data, Po1>7.65)
+
+#make models
+leaf1 = lm(Crime ~ ., data=reg1)
+leaf1_sig = lm(Crime ~ Ed + Pop + Prob + Time, data=reg1)
+
+leaf2 = lm(Crime ~ ., data=reg2)
+leaf2_sig = lm(Crime ~ Ineq, data=reg2)
+
+#get summaries
+leaf1_summary = summary(leaf1)
+leaf1_sig_summary = summary(leaf1_sig)
+
+leaf2_summary = summary(leaf2)
+leaf2_sig_summary = summary(leaf2_sig)
+
+#get Rsquared vals
+leaf1_R_sq = round(leaf1_summary$r.squared, 2)
+leaf1_adj_R_sq = round(leaf1_summary$adj.r.squared, 2)
+
+leaf1_sig_R_sq = round(leaf1_sig_summary$r.squared, 2)
+leaf1_sig_adj_R_sq = round(leaf1_sig_summary$adj.r.squared, 2)
+
+leaf2_R_sq = round(leaf2_summary$r.squared, 2)
+leaf2_adj_R_sq = round(leaf2_summary$adj.r.squared, 2)
+
+leaf2_sig_R_sq = round(leaf2_sig_summary$r.squared, 2)
+leaf2_sig_adj_R_sq = round(leaf2_sig_summary$adj.r.squared, 2)
+
+
+form.lm.1 = formula(Crime~.)
+form.lm.2 = formula(Crime ~ Ed + Pop + Prob + Time)
+form.lm.3 = formula(Crime ~ Ineq)
+
+#leaf 1
+cv_1 = cv.lm(data = reg1, form.lm=form.lm.1, m=5)
+ms_1 = round(attr(cv_1, "ms"),2)
+ms_1 = formatC(ms_1, format = "e", digits = 2)
+#leaf 2
+cv_2 = cv.lm(data = reg2, form.lm=form.lm.1, m=5)
+ms_2 = round(attr(cv_2, "ms"),2)
+ms_2 = formatC(ms_2, format = "e", digits = 2)
+#leaf 1 P<.075
+cv_1_sig = cv.lm(data = reg1, form.lm=form.lm.2, m=5)
+ms_1_sig = round(attr(cv_1_sig, "ms"),2)
+ms_1_sig = formatC(ms_1_sig, format = "e", digits = 2)
+#leaf 2 P<.075
+cv_2_sig = cv.lm(data = reg2, form.lm=form.lm.3, m=5) 
+ms_2_sig = round(attr(cv_2_sig, "ms"),2)
+ms_2_sig = formatC(ms_2_sig, format = "e", digits = 2)
+
+```
+
+
+
+### Random Forest model
+#### Method
+1.  Create a random forest model with package `randomForest`
+
+
+
+```{r random_forest,  message=FALSE, echo = FALSE}
+library(randomForest)
+
+num_pred = 5
+model_rf = randomForest(Crime~.,
+                        data = data,
+                        mtry = num_pred,
+                        importance = TRUE,
+                        ntree = 5000)
+
+plot(model_rf)
+
+r_squared_rf = get_r_squared(model_rf)
+y = data$Crime
+y_hat = predict(model_rf, data)
+mse_rf = round(mean((y_hat - y)**2),2)
+mse_rf = formatC(mse_rf, format = "e", digits = 2)
+```
+
+
+A plot of the number of trees vs error on a random forest model. 
+
+
+```{r importance_plot,  message=FALSE, echo = FALSE}
+
+varImpPlot(model_rf)
+```
+
+Above is a dotchart of variable importance as measured by a Random Forest.
+
+
+### Choose the best model
+#### Method
+1.  Gather all R^2^ values
+2.  Gather all Mean Squared Error (mse) values
+3.  Choose model based on results
+
+##### Model results
+
+||Initial|leaf 1|leaf 1 significant|leaf 2|leaf 2 significant| Random Forest|
+|--|--|-------------|-----|----|-----|--|
+|R^2^|`r r_squared`|`r leaf1_R_sq`|`r leaf1_sig_R_sq`|`r leaf2_R_sq`|`r leaf2_sig_R_sq`|`r r_squared_rf`|
+|mse|`r mse`|`r ms_1`|`r ms_1_sig`|`r ms_2`|`r ms_2_sig`|`r mse_rf`|
+
+
+
+I would choose the Random Forest model as the best model based on the results above because it has the lowest mean squared error.  
+
+### Interpret Model
+
+Although the leaf 1 and leaf 2 models have higher R^2^ values they are demonstrably overfit as seen in the large mse values.  It is interesting that the leaf 2 significant R^2^ value is 0.03, but still outperforms the leaf 2 model in cross-validation.  
+
+##### Regression Tree
+These models do not have a significant amount of data and I found it interesting that after cross-validation the tree size with the smallest deviance was 2.  Although it did not "feel right" to use a tree of size 2, I decided I would go where the data leads me and it offered me the chance to have same data to work with in the regression tree.
+
+The only significant split in my size 2 model is Po1, which is the 	per capita expenditure on police protection in 1960.  Po1 is an interesting predictor, at first I thought that crime and Po1 were correlated, with crime being the dependent variable.  I thought that the most likely scenario was a spike in crime precipitated a city's increase in police expenditure. I then contemplated that it is probably more nuanced.  I can imagine a situation when a city mayor ran on increasing police expenditure, won and without any significant increase in actual crime the crime rate went up, because now there are more officers looking to make arrests.  An example of trying to make yourself useful.
+
+##### Random Forest
+Po1 is also shown the most important factor for the Random Forest as seen in the dotchart.  The predictors look to be grouped in 3 clusters of importance.  It would be interesting to limit the random forest to 1, or 2 clusters and compare the results to the original model.  
+
+
+# Question 10.2
+
+Describe a situation or problem from your job, everyday life, current events, etc., for which a logistic regression model would be appropriate. List some (up to 5) predictors that you might use.
+
+## Response
+
+Logistic regression can be used to determine how systems work and to predict future outcomes.  There are many situations when this type of model would be appropriate.  A company could use it to determine if there is work place bias in how they promote staff.  Often times companies keep data on their employees these data could be used to create a logistic model to determine a person's probability of promotoion.  Some possible predictors are:
+
+  1.  Race
+  2.  Sex
+  3.  Hours worked (including overtime)
+  4.  Educational achievement
+  5.  Training events attended
+  
+# Question 10.3
+1. Using the GermanCredit data set germancredit.txt from       http://archive.ics.uci.edu/ml/machine-learning-databases/statlog/german / (description at http://archive.ics.uci.edu/ml/datasets/Statlog+%28German+Credit+Data%29 ), use logistic regression to find a good predictive model for whether credit applicants are good credit risks or not. Show your model (factors used and their coefficients), the software output, and the quality of fit. You can use the glm function in R. To get a logistic regression (logit) model on data where the response is either zero or one, use family=binomial(link=”logit”) in your glm function call.
+
+2.  Because the model gives a result between 0 and 1, it requires setting a threshold probability to separate between “good” and “bad” answers. In this data set, they estimate that incorrectly identifying a bad customer as good, is 5 times worse than incorrectly classifying a good customer as bad. Determine a good threshold probability based on your model.
+
+## Goals
+
+1. Use logistic regression to find a good predictive model for whether credit applicants are good credit risks or not
+2. Show your model (factors used and their coefficients), the software output, and the quality of fit
+3. Determine a good threshold probability based on your model.
+
+
+### Logistic Regression
+#### Method
+1. Use `glm` package to create an initial model
+2. Make predictor limited model based on p-values<=0.05
+
+
+##### Initial model Summary
+
+```{r logistic_regression,  message=FALSE, echo = FALSE}
+library(caret)
+data = as.data.table(read.table('germancredit.txt', header = FALSE, sep = ' '))
+data$V21[data$V21 == 2] =0
+
+Train = createDataPartition(data$V21, p=0.85, list=FALSE)
+train = data[ Train, ]
+test = data[ -Train, ]
+
+
+
+initial_model = glm(V21~., data=train, family=binomial(link="logit"))
+initial_model_summary = summary(initial_model)
+y_hat = predict(initial_model,test,type = 'response')
+initial_model_response = data.table(y_hat = y_hat, y = test$V21)
+
+
+
+initial_model_summary = summary(initial_model)
+initial_model_aic = initial_model_summary$aic
+initial_model_summary
+```
+
+
+
+
+
+##### P-value limited model Summary
+
+```{r significant_p_model,  message=FALSE, echo = FALSE}
+
+# gather the significant coefficients from initial model
+coef = names(summary(initial_model)$coef[summary(initial_model)$coef[,4] <= .05, 4])
+
+columns = c()
+factors = c()
+
+data_test = copy(train)
+for(c in 1:length(coef)){
+  cols = strsplit(coef[c], 'A', fixed = FALSE, perl = FALSE, useBytes = FALSE)
+  column = cols[[1]][1]
+  factor = cols[[1]][2]
+  factors[c] = factor
+  columns[c] = column
+  
+}
+sig_cols = data.table(cols = columns, factors = factors)
+
+
+#Make new data table with significant values, couldn't figure out how to do this well
+new_data = copy(data)
+
+new_data$A13 = data$V1 == 'A13'
+new_data$A14 = data$V1 == 'A14'
+
+new_data$A34 = data$V3 == 'A34'
+new_data$A41 = data$V4 == 'A41'
+new_data$A42 = data$V4 == 'A42'
+new_data$A43 = data$V4 == 'A43'
+new_data$A49 = data$V4 == 'A49'
+new_data$A64 = data$V6 == 'A64'
+new_data$A65 = data$V6 == 'A65'
+new_data$A74 = data$V7 == 'A74'
+
+new_data$A103 = data$V10 == 'A103'
+new_data$A124 = data$V12 == 'A124'
+
+new_data$A143 = data$V14 == 'A143'
+new_data = new_data[,22:33]
+new_data$V2 = data$V2
+new_data$V5 = data$V5
+new_data$V8 = data$V8
+
+new_data$V21 = data$V21
+
+# Create new model
+new_train = new_data[ Train, ]
+new_test = new_data[ -Train, ]
+
+significant_p_model = glm(V21~., data=new_train, family=binomial(link="logit"))
+new_model_summary = summary(significant_p_model)
+y_hat = predict(significant_p_model,new_test,type = 'response')
+significant_p_model_response = data.table(y_hat = y_hat, y = test$V21)
+
+
+
+significant_p_model_summary = summary(significant_p_model)
+significant_p_model_aic = significant_p_model_summary$aic
+significant_p_model_summary
+```
+
+
+
+The initial logistic regression model has an AIC of `r initial_model_aic` and used all predictors.  The extra coefficients are dummy variables created automatically by the glm package, which creates n-1 dummy variables for factors of length n.  The p-value limited predictor model has an AIC of `r significant_p_model_aic` and used predictors of the previous model with p-value<=0.05.
+
+
+### Determine a good threshold probability based on your model
+#### Method
+1.  Create a function that determines money made/lost for a given threshold
+2.  Compare both models
+3.  Choose model that makes the most money
+
+
+```{r money,  message=FALSE, echo = FALSE}
+library(ggplot2)
+#mm function that determines how much money a model makes
+mm = function(response_data, thresholds){
+  
+  money_made = c()
+  for(i in 1:length(thresholds)){
+    threshold = thresholds[i]
+    ss = response_data[(response_data$y_hat >= threshold)]
+    total = nrow(ss)
+    good = sum(ss$y)
+    bad = total-good
+    money = good*100 - bad*500
+    money_made[i] = money
+  }
+  return(money_made)
+}
+
+thresholds = seq(.5,1,by=.01)
+
+
+initial_model_money = mm(initial_model_response, thresholds)
+
+
+significant_p_model_money = mm(significant_p_model_response, thresholds)
+
+money = data.table(thresholds=thresholds, 
+                   initial_model_money =initial_model_money,
+                   significant_p_model_money=significant_p_model_money)
+
+money = gather(money, key=model, value = money, initial_model_money:significant_p_model_money)
+
+
+initial_model_money_max = max(initial_model_money)
+initial_model_money_max_index = which(initial_model_money==initial_model_money_max)
+initial_model_money_max_threshold = thresholds[initial_model_money_max_index]
+
+
+
+significant_p_model_money_max = max(significant_p_model_money)
+significant_p_model_money_max_index = which(significant_p_model_money==significant_p_model_money_max)
+significant_p_model_money_max_threshold = thresholds[significant_p_model_money_max_index]
+
+
+
+
+p = ggplot(data = money, 
+           aes(x = thresholds, y = money,colour = model)) +
+            geom_line() +
+            scale_size_manual(values=size) + 
+            theme(legend.position="bottom")
+
+
+show(p)
+```
+
+
+
+Although the initial model had a lower AIC, the p-value limited model performed better as seen in the plot above and the table below.
+
+||initial model|p-value limited model|
+|--|--|-------------|
+|AIC|`r initial_model_aic`|`r significant_p_model_aic`|
+|Max Money|`r initial_model_money_max`|`r significant_p_model_money_max`|
+|Threshold|`r initial_model_money_max_threshold`|`r significant_p_model_money_max_threshold`|
+
+
+I choose the p-value limited model with a threshold of `r significant_p_model_money_max_threshold` because:
+
+1. It makes more money from the given dataset
+2. It uses a lower threshold for a decision surface
+
+It is significant to note that the second model made more money at a lower threshold.  This is a second positive because you are not turning down clients that have the potential to bring future business. It would be good to cross validate this dataset, but I do not have time.   
+
+
+
+
+

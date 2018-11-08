@@ -1,0 +1,376 @@
+---
+title: "Homework 10"
+author: "Jeff Tilton"
+date: "10/27/2018"
+output:
+  rmarkdown::pdf_document:
+    fig_caption: yes        
+    includes:  
+      in_header: preamble-latex.tex
+---
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, fig.pos= "H")
+```
+
+# Question 14.1
+
+The breast cancer data set breast-cancer-wisconsin.data.txt from http://archive.ics.uci.edu/ml/machine-learning-databases/breast-cancer-wisconsin/ (description at http://archive.ics.uci.edu/ml/datasets/Breast+Cancer+Wisconsin+%28Original%29 ) has missing values.
+1. Use the mean/mode imputation method to impute values for the missing data.
+2. Use regression to impute values for the missing data.
+3. Use regression with perturbation to impute values for the missing data.
+4. (Optional) Compare the results and quality of classification models (e.g., SVM, KNN) build using
+(1) the data sets from questions 1,2,3;
+(2) the data that remains after data points with missing values are removed; and
+(3) the data set when a binary variable is introduced to indicate missing values.
+
+##Goals
+1.  Build 5 data sets, 4 with different imputation techniques and 1 removing data points that have missing values
+    - Mean
+    - Mode
+    - Regression
+    - Regression with perterbation
+2.  Campare the results and quality of classification models with the 5 data sets
+
+## Data
+```{r data,   message=FALSE, echo = FALSE}
+library(data.table)
+library(tidyverse)
+raw = read.table('breast-cancer-wisconsin.data.txt', header = FALSE, sep = ',')
+data = as.data.table(copy(raw))
+colnames(data) = c('Sample_code_number', 'Clump_Thickness', 'Uniformity_of_Cell_Size','Uniformity_of_Cell_Shape', 'Marginal_Adhesion', 'Single_Epithelial_Cell_Size','Bare_Nuclei', 'Bland_Chromatin', 'Normal_Nucleoli', 'Mitoses','Class')
+data[data =='?'] = NA
+data$Class[data$Class == 2] =0
+data$Class[data$Class == 4] =1
+missing = which(is.na(data$Bare_Nuclei))
+cc = data.table(sapply( data[complete.cases(data)], as.numeric ))
+head(data)
+```
+
+```{r missing_data,   message=FALSE, echo = FALSE}
+data_length = nrow(data)
+five_percent = round(data_length * .05,0)
+missing_data = colSums(apply(data, 2, is.na))
+missing_data
+```
+
+
+The data contains `r data_length` points which means that no more than `r five_percent` values or 5% of any column should be imputed.  There only seem to be 16 missing values located in a single column, Bare Nuclei, well under our 5% threshold.
+
+## Datasets
+### Method
+#### Mean and Mode
+1.  Find the Bare Nuclei mean and mode
+2.  Create 2 copies of the original data set and apply the mean and mode to the missing data
+
+#### Regression and Perturbation
+This was much more complicated then the mean and mode.  I chose to compare two types of regression, Elastic Net and Random Forest and choose the model with the lowest Mean Squared Error (mse).
+
+##### Elastic Net
+1.  Split data into train and test and use a for loop to find the best lambda value.
+2.  Create a new lm model with the coefficients selected in the best elastic net model
+3.  Find the cross validated mse
+
+##### Random Forest
+1.  Create a random Forest model and get the mse 
+
+In random forests, there is no need for cross-validation or a separate test set to get an unbiased estimate of the test set error. It is estimated internally , during the run. source: https://www.stat.berkeley.edu/~breiman/RandomForests/cc_home.htm#ooberr
+
+```{r mean_mode,   message=FALSE, echo = FALSE}
+
+bn = cc$Bare_Nuclei
+
+#mean
+
+bn_mean = round(mean(bn),0)
+mean_data = copy(data) 
+mean_data = replace_na(mean_data, list('Bare_Nuclei' = bn_mean ))
+
+
+#mode
+#https://stackoverflow.com/a/8189441/4296857
+Modes <- function(x) {
+  ux <- unique(x)
+  tab <- tabulate(match(x, ux))
+  ux[tab == max(tab)]
+}
+
+bn_mode = round(Modes(bn),0)
+mode_data = copy(data) 
+mode_data = replace_na(mode_data, list('Bare_Nuclei' = bn_mode ))
+
+
+```
+
+
+
+
+
+```{r regression,   results = 'hide', include = FALSE, message=FALSE, echo = FALSE}
+library(glmnet)
+library(DAAG)
+## 75% of the sample size
+smp_size = floor(0.75 * nrow(data))
+
+## set the seed to make your partition reproducible
+set.seed(123)
+train_ind = sample(seq_len(nrow(cc)), size = smp_size)
+
+train = cc[train_ind, -1]
+test = cc[-train_ind, -1]
+train = train[,-10]
+test = test[,-10]
+
+e_train = data.matrix(train)
+e_test = data.matrix(test)
+### Elastic Net
+alphas = seq(0,1,by=.01)
+#set best_mse to infinite
+best_mse = 1/0
+best_alpha = 0
+
+#search for best alpha
+for(a in 1:length(alphas)){
+  alpha = alphas[a]
+  
+  e_cv = cv.glmnet(e_train[,-6], e_train[,6], 
+                 alpha = alpha,
+                 nfolds = 5,
+                 nlambda = 20,
+                 type.measure = 'mse',
+                 family='gaussian',
+                 standardize = TRUE)
+  lambda = e_cv$lambda.min
+  y_hat = round(predict(e_cv, s = lambda, newx = e_test[,-6]),0)
+  y = e_test[,6]
+  mse = sum((y_hat-y)**2)/nrow(e_test)
+  
+  if(mse<best_mse){
+    best_mse = mse
+    el_net_mse = best_mse
+    best_alpha = alpha
+    best_lambda = lambda
+    best_model = e_cv
+  }
+  
+  e_net = best_model
+  
+}
+
+
+e_net = cv.glmnet(data.matrix(cc[,-6]), data.matrix(cc[,6]), 
+                 alpha = best_alpha,
+                 nfolds = 5,
+                 nlambda = 20,
+                 type.measure = 'mse',
+                 family='gaussian',
+                 standardize = TRUE)
+e_l = coef(e_net, s = best_lambda)
+e_coeffs = e_l@Dimnames[[1]][e_l@i + 1] %>%
+          .[2:length(.)]
+ 
+e_net_mse = formatC(mean(e_net$cvm), format = "e", digits = 2)
+
+
+formula_1 = formula(Bare_Nuclei~ .)
+e_data = data.frame(cc)[e_coeffs]
+e_data$Bare_Nuclei = cc$Bare_Nuclei
+e_cv = cv.lm(data = e_data, form.lm=formula_1, m=10, printit = FALSE) 
+e_mse = attr(e_cv,'ms')
+e_mse = formatC(e_mse, format = "e", digits = 2)
+model_lm = lm(Bare_Nuclei~ ., train)
+y_hat = predict(model_lm, test)
+y = test$Bare_Nuclei
+error_lm = y_hat-y
+```
+
+
+```{r random_forest,  message=FALSE, echo = FALSE}
+library(randomForest)
+
+num_pred = 5
+model_rf = randomForest(Bare_Nuclei~.,
+                        data = train,
+                        mtry = num_pred,
+                        importance = TRUE,
+                        ntree = 1000)
+
+
+
+y = as.numeric(test$Bare_Nuclei)
+y_hat = as.numeric(predict(model_rf, test))
+error_rf = (y_hat - y)
+mse_rf = round(mean(error_rf**2),2)
+mse_rf = formatC(mse_rf, format = "e", digits = 2)
+
+```
+
+
+
+
+
+```{r hist,  message=FALSE, echo = FALSE}
+
+hist(error_rf)
+```
+
+
+
+
+
+
+
+###### Results
+||lm model|Random Forest|
+|--|--|-------------|
+|MSE|`r e_mse`|`r mse_rf`|
+
+
+
+Random Forest had the smallest mse.  I decided to use the split training and test data to create another model and obtain the error for the Random Forest on the training data.  This error will be used as the distribution to select my values for perturbation.  I did the same for the linear model just to compare the results.  Results were relatively compatible, seen below.
+
+```{r lm,   message=FALSE, echo = FALSE}
+
+
+regression_data = copy(data)
+prediction_rf =predict(model_rf, data[is.na(data$Bare_Nuclei),-7])
+regression_data[missing,7]=round(prediction_rf,0)
+perturb_data = copy(data)
+perturbed_rf = round(prediction_rf+sample(error_rf,16), 0)
+perturb_data[missing,7] = perturbed_rf
+
+
+
+prediction_lm = predict(model_lm, data[is.na(data$Bare_Nuclei),-7])
+perturbed_lm = round(prediction_lm+sample(error_lm,16), 0)
+
+compare = data.table(RF = round(prediction_rf,0), LM = round(prediction_lm,0), RF_Perturbed = perturbed_rf, LM_Perturbed = perturbed_lm)
+compare
+#show mse for both regression show histogram of error explain what you did, compare the models with the data.
+```
+
+## Campare the results and quality of classification models with the 5 data sets
+
+
+
+I am going to try and use the caret package, which I have seen, but never used. 
+
+### Methods
+1.  Split data into training and test
+2.  Use a cross-validated grid search to find best hyperparameter values (C for svm, K for knn)
+3.  Use test data to make a new prediction and confusion matrix
+
+
+
+```{r svm_knn,  message=FALSE, echo = FALSE}
+
+library(caret)
+library(e1071)
+
+
+split_data = function(data, train_frac=.8){
+  ## 75% of the sample size
+  data = data.frame(data)
+  data$Class = as.factor(data$Class)
+  #data = sapply( data, as.factor )
+  smp_size = floor(train_frac * nrow(data))
+  train_ind = sample(seq_len(nrow(data)), size = smp_size)
+  
+  train = data[train_ind,]
+  test = data[-train_ind,]
+  return(list(train, test))
+}
+
+caret_model = function(x,y, method = "svmLinear", trctrl, tuneGrid){
+  set.seed(343)
+  model <- train(x = x, y = y, method = method,
+                    trControl=trctrl,
+                    tuneGrid = tuneGrid,
+                    tuneLength = 10)
+  return(model)
+}
+
+
+svm_grid <- expand.grid(C = c(.0000000000001, .0000001, 0.01, 0.05, 0.1, 0.25, 0.5, 0.75, 1, 10, 100, 500, 1000, 10000))
+knn_grid <- expand.grid(k = c(1,2,3,4,5,6,7,8,9,10,11,12,13,14,15))
+trctrl <- trainControl(method = "repeatedcv", number = 10, repeats = 3)
+
+
+
+
+methods = list("svmLinear", 'knn')
+grids = list(svm_grid, knn_grid)
+data_sets = list(mean_data, mode_data, regression_data, perturb_data,cc)
+svm = NULL
+svm_matrix = NULL
+knn = NULL
+knn_matrix = NULL
+
+
+
+for(m in 1:length(methods)){
+  method = methods[[m]]
+  grid = grids[[m]]
+  for(d in 1:length(data_sets)){
+    data_set = data_sets[[d]]
+    
+    tt = split_data(data_set, train_frac=.8)
+    
+    trn = tt[[1]][,-1]
+    x_trn = sapply(trn[,1:9], as.numeric)
+    y_trn = trn[,10]
+    
+    test = tt[[2]][,-1]
+    x_tst = data.frame(sapply(test[,1:9], as.numeric))
+    y_tst = test[,10]
+    model = caret_model(x = x_trn, y = y_trn, method=method, trctrl=trctrl, tuneGrid = grid)
+    test_pred = predict(model, newdata =x_tst)
+    conf_mat = confusionMatrix(test_pred, y_tst )
+    
+    if(method == 'svmLinear'){
+      svm[[d]] = model
+      svm_matrix[[d]] = conf_mat
+    }else{
+      knn[[d]] = model
+      knn_matrix[[d]] = conf_mat
+    }
+  }
+}
+
+
+
+
+```
+
+
+
+
+```{r svm_knn_acc,  message=FALSE, echo = FALSE}
+
+mean_svm_acc = round(svm_matrix[[1]]$overall[[1]],2)
+mode_svm_acc = round(svm_matrix[[2]]$overall[[1]],2)
+reg_svm_acc = round(svm_matrix[[3]]$overall[[1]],2)
+per_svm_acc = round(svm_matrix[[4]]$overall[[1]],2)
+cc_svm_acc = round(svm_matrix[[5]]$overall[[1]],2)
+
+mean_knn_acc = round(knn_matrix[[1]]$overall[[1]],2)
+mode_knn_acc = round(knn_matrix[[2]]$overall[[1]],2)
+reg_knn_acc = round(knn_matrix[[3]]$overall[[1]],2)
+per_knn_acc = round(knn_matrix[[4]]$overall[[1]],2)
+cc_knn_acc = round(knn_matrix[[5]]$overall[[1]],2)
+```
+
+### Results
+
+||KNN|SVM|
+|---|--|-------------|
+|Mean|`r mean_knn_acc`|`r mean_svm_acc`|
+|Mode|`r mode_knn_acc`|`r mode_svm_acc`|
+|Regression|`r reg_knn_acc`|`r reg_svm_acc`|
+|Perturb|`r per_knn_acc`|`r per_svm_acc`|
+|Complete Case|`r cc_knn_acc`|`r cc_svm_acc`|
+
+
+## Discussion
+
+The best model and data set were the SVM complete cases combo. Although I expected the SVM model to outperform KNN I was surprised to see this.  I will say that there were a lot of assumptions made about the data.  Such as treating it as continuous and then rounding to the nearest integer.  Also I followed a tutorial on the caret package and they split the data up into training and testing, ran cross-validation on the training and then used the testing set to choose a final accuracy.  Although I enjoyed the tutorial and now really enjoy the caret package, I am not sure this demonstrates what the best model is.  I think using the cross validation accuracy would be more appropriate.  THe above results seem more based on luck of the draw.
+

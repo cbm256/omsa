@@ -1,0 +1,123 @@
+---
+title: "HW 5"
+author: "Jeff Tilton"
+date: "9/22/2018"
+output:
+  rmarkdown::pdf_document:
+    fig_caption: yes        
+    includes:  
+      in_header: preamble-latex.tex
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, fig.pos= "H")
+```
+
+# Question 8.1
+
+Describe a situation or problem from your job, everyday life, current events, etc., for which a linear regression model would be appropriate. List some (up to 5) predictors that you might use.
+
+## Response
+
+Linear regression can be used to determine how systems work and to predict future outcomes.  There are many situations when this type of model would be appropriate.  A company could use it to determine if there is work place bias in how they promote staff.  Often times companies keep data on their employees these data could be used to create a linear regression model and the coefficients would determine if race or sex plays a part in a person's promotoion.  Some possible predictors are:
+
+  1.  Race
+  2.  Sex
+  3.  Hours worked (including overtime)
+  4.  Educational achievement
+  5.  Training events attended
+
+# Question 8.2
+Using crime data from http://www.statsci.org/data/general/uscrime.txt (file uscrime.txt, description at http://www.statsci.org/data/general/uscrime.html ), use regression (a useful R function is lm or glm) to predict the observed crime rate in a city with the following data:
+
+## Response
+
+### Goals
+
+  1. Use regression to predict the observed crime rate in a city 
+  2. Display model, software output and quality of fit
+
+
+### Method
+
+I will first use all of the predictors in the data to fit a regression model using the  lm function.  Next, I will remove any predictors that have a large p value and create a new model.
+
+#### Output for model using all predictors
+
+
+
+```{r model1,  message=FALSE, echo = FALSE}
+library(glmnet)
+
+raw = read.table('uscrime.txt', header = TRUE, sep = '\t')
+
+
+data = raw
+data$So = as.factor(data$So)
+
+fit = lm(Crime~ ., data = data)
+summary(fit)
+```
+
+
+#### Diagnostic plots for all predictors
+
+
+```{r model1_plots,  message=FALSE, echo=FALSE}
+layout(matrix(c(1,2,3,4),2,2)) # optional 4 graphs/page 
+plot(fit)
+```
+
+#### New model output
+
+```{r model2,  message=FALSE, echo =FALSE}
+library(glmnet)
+raw = read.table('uscrime.txt', header = TRUE, sep = '\t')
+
+fit = lm(Crime~ M+Ed+U2+Ineq+Wealth+NW, data=raw)
+summary(fit)
+```
+
+
+
+#### Diagnostic plots for new model
+
+
+
+```{r model2_plots,  message=FALSE, echo=FALSE}
+layout(matrix(c(1,2,3,4),2,2)) # optional 4 graphs/page 
+plot(fit)
+```
+
+### Discussion
+
+The model using all predictors had a much higher Adjusted R-squared value, 0.7078 compared to 0.4909 as well as a p-value a whole order of magnitude smaller 3.539e-07 compared to 6.476e-06, the model diagnostic plots look similar.  Although the quality of fit indicators suggest the first model may be better, the homework instructions suggest that this is a case of overfitting.
+
+I found a cross validation function to see what the sum of mean squared error is for the two models to test both models' fit.  The results from cross validation below show that the first model has an overall mean squared error if 278973 compared to the simpler models 90926.  Model performance for the first model using all predictors was significantly worse although it had better quality of fit indicators.
+
+### Cross Validation
+
+#### Model 1
+```{r model1_cv,  message=FALSE, echo=FALSE}
+library(DAAG)
+
+df = raw
+form.lm.1 = formula(Crime~.)
+form.lm.2 = formula(Crime~ M+Ed+U2+Ineq+Wealth+NW, data =raw)
+cv.lm(data = raw, form.lm=form.lm.1, m=5) 
+
+```
+
+#### Model 2
+
+
+```{r model2_cv,  message=FALSE, echo=FALSE}
+
+form.lm.2 = formula(Crime~ M+Ed+U2+Ineq+Wealth+NW, data =raw)
+cv.lm(data = raw, form.lm=form.lm.2, m=5) 
+
+```
+
+
+
+
