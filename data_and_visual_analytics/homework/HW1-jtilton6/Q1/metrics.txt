@@ -1,0 +1,16 @@
+Average node degree: 1.771
+    The average node degree is the average number of edges connected to a node.  The 
+    average node degree is 1.77, but I see a node with more than 15 connections, so 
+    it is 7x as connected as the average node.
+    
+Diameter of the graph: 23
+    The diameter is the shortest distance between the two most distant nodes.  
+    Another measure of how connected the network is.  The shorter the distance of the 
+    longest path the more connected it is.
+    
+    
+Average path length: 7.207
+    The path length is the average of the shortest distance between each node.  
+    In other words on average I can make it from any node to another in around 7 moves.
+    
+    

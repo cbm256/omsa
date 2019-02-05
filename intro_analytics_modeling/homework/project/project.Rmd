@@ -1,0 +1,73 @@
+---
+title: "Project"
+author: "Jeff Tilton"
+date: "11/27/2018"
+output:
+  rmarkdown::pdf_document:
+    fig_caption: yes        
+    includes:  
+      in_header: preamble-latex.tex
+---
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, fig.pos= "H")
+```
+
+## Problem Description:
+
+**The US Army Corps of Engineers (USACE) needs a model to predict the day’s average Total Dissolved Gas (TDG) concentration 24 hours in advance at several dams along the Columbia and Snake Rivers.**
+
+The USACE regulates numerous reservoirs and dams along the Columbia and Snake Rivers and needs to balance stakeholders’ competing needs and interests throughout the basins.  An environmental group brought a case against the USACE, which forced it to spill at many of the dams under the premise that spill is beneficial to the native salmon fish population. Spill is when water travels over the dam, through a spillway, rather than under the dam through the turbines for power generation.  Oregon and Washington states have laws that limit a day's average TDG concentration produced by spill with distinct ways to calculate the average.  Too much spill can negatively impact the environment because it can increase TDG past the 120% concentrations, which have been shown to be harmful to aquatic life.  Therefore, a model that can predict a day’s average TDG level for both the Oregon and Washington methods is necessary to plan daily spill operation.
+
+
+## Model Outline:
+
+1.  Create optimization model to determine site specific TDG levels
+2.  Model physical properties to feed into optimization model
+3.  Use a monte carlo simulation to determine expected hourly TDG values
+
+### Optimization Model
+
+An optimization model will be used to predict the hourly TDG values at a specific dam.  Emperically based optimization models are generally more successful than stochastically based models for predicting physical parameters such as TDG.  A Department of Energy funded study outlines an optimization approach that modeled several of the dams along the Columbia River.  All the dams selected are regulated by the United States Bureau of Reclemation, not the USACE, but the process is easily reproducible from the paper and the fundamentals learned in this course.
+
+
+Tailwater TDG is determined by the below equation where b~1~, b~2~ and b~3~ are coefficients determined in the optimization model with root mean squared error  used to determine loss in the objective function.  
+
+
+$$TDG_T = 100\bigg[\frac{Q_s+b_1Q_s+b3}{Q_s+Q_p}\bigg]\bigg[1+ \frac{P_{TW}}{2P_{atm}} \bigg]b_2+TDG_F\bigg[\frac{Q_p-b_1Q_s-b_3}{Q_s+Q_p}\bigg]$$
+
+
+### Physical Properties:
+
+There are multiple physical properties necessary for the optimization model.  Some of them can be determined by dam operators and others will need to be modeled.
+
+#### Assumptions:
+
+1.  Q~S~ (spill flow) and Q~P~ (power generation flow) can be determined by dam operators and do not need to be modeled.
+2.  The water pressure P~TW~ is a function of water height and temperature, both will need to be modeled.
+3.  Atmospheric pressure P~atm~ needs to be modeled
+4.  TDG~F~ needs to bemodeled
+
+##### P~TW~
+
+Fluid pressure is a function of a fluid's denisty and columnar height.
+
+**Given a project's hourly total flow and tailwater height data, a simple linear regression model can be created to predict tailwater height.**
+
+Water density fluctuates depending on temperature.  Water temperature is multi-seasonal, it changes throughout the year, warmer in the summer and colder in the winter, as well as the day, colder in the morning and wormer in the afternoon.  **Given a project's hourly water temperature data an exponential smoothing algorithm can be used to approximate the current trend.  The previous days temperature + seasonal trend can be used to predict the next day's water temperature.**
+
+##### P~atm~
+
+The National Oceanic and Atmospheric Administration has an api with atmospheric pressure forecasts.  It will give a prediction for any point in the US, but the predictions are interpolations of gridded data, and depending on the point can give predictions off by a factor.  **Given the hourly forecasted P~atm~ and the actual P~atm~ at a point, a simple optimization model can be used to determine a multiplicative factor to better predict a point's atmospheric pressure.**
+
+##### TDG~F~
+
+The forebay (upper part of a dam) TDG is the most difficult part to model because it requires a high frequency time series model.  From what I have read I understand that the time series models we have learned have difficulties with high frequency models.  Furthermore I need to determine multiple steps ahead, not just a single step.  I have come accross a few papers that propose a KNN approach to time series prediction and have done well with predicting multiple steps ahead in hourly data.  **Given a projects Forebay TDG a KNN model can be used to predict the next day's hourly forebay TDG.** 
+
+### Monte Carlo Simulation
+
+Once the various models have been created and validated a set of residual distributions can be created for each model.  **Given each model's residual distribution and the hourly predictions of each model, a 1000 run monte carlo simulation can be used to determine each hour's predicted TDG level.**  All the physical parameters will be fed into the optimization model 1000 times at each hour, but each physical parameter will be randomly perturbed given the model's cross-validated residual distribution. 
+
+## Discussion
+
+A method to determine site specific tailwater tdg has been proposed.   Multiple models are used to predict physical parameters that feed into an emperically based optimization model to determine a dam's tailwater TDG.  The results of these models can be used in a 1000 run monte carlo simulation to determine each hour's expected TDG level.  The hourly TDG levels can then be used to determine if the USACE is predicted to stay within the Oregon and Washington State water quality standards.  
+

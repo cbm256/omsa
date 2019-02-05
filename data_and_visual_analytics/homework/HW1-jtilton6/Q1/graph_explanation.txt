@@ -1,0 +1,3 @@
+I used size and hue to emphasize node importance because these are two features that are
+pre-attentively processed.  The nodes formed natural clusters with the larger nodes in the 
+front to show the importance and the more important nodes of the various clusters.  

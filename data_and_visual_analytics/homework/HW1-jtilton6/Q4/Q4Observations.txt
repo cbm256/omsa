@@ -1,0 +1,6 @@
+c.i.a: 47
+c.i.b: 4 created 5 total
+c.ii:  metaphone3 566 clusters
+c.iii: if(isBlank(value.trim()), "Unbranded", value)
+c.iv:  if(toNumber(value)>100,1,0)
+c.v:   if(or(value.contains('discount'),value.contains('offer'),value.contains('sale')), 1,0)

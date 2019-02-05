@@ -1,0 +1,185 @@
+---
+title: "Homework 1"
+output:
+  rmarkdown::pdf_document:
+    fig_caption: yes        
+    includes:  
+      in_header: preamble-latex.tex
+---
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, fig.pos= "H")
+```
+## Introduction
+
+It is common knowledge that obeying the traffic signs while driving reduces the number of accidents on the road. Is the previous really true? If it is, the more signs the safer the highway? In this problem we will analyze data from 39 sections of large highways in Minnesota in 1973 to try to give answers to these questions.
+
+The data file includes the following columns:
+
+Rate: 1973 accident rate per million vehicle miles.
+
+Signs: signals per mile of roadway, adjusted to have no zero values.
+
+
+```{r data}
+data = read.csv("Highway1.csv", head = TRUE, sep = ",")
+
+rate = as.numeric(data[,2])
+
+signs = as.numeric(data[,6])
+
+cor_coef = round(cor(signs, rate),3)
+cor_coef_log = round(cor(log(signs), log(rate)),3)
+
+plot(signs, rate)
+
+```
+
+
+
+## Question 1
+
+### A and B
+The scatterplot above shows a weak, positive, linear correlation between signals per mile of roadway and the accident rate per million vehicle miles with a correlation coefficient of `r cor_coef`.  There doesn't appear to be any outliers in the data.  The positive correlation coefficient suggests that an increase in signage may lead to higher accidents, but the value is not that close to 1, so the correlation is not strong. 
+
+### C 
+
+
+Simple linear regression appears to be a reasonable model for the above data based on the scatterplot and correlation coefficient.  I did not note anything particularly unusual.
+
+### D
+
+I took the logs of the data based on the above scatterplot.  There are quite a few data points clustered in the 0.0 - 0.25 range.  A log transformation might spread this data out and improve the correlation.  It did improve the look of the plot (seen below) and the correlation (`r cor_coef_log`), but not dramatically.
+
+```{r log}
+
+plot(log(signs), log(rate))
+
+```
+
+
+
+
+## Question 2
+
+```{r regression}
+
+model = lm(rate ~ signs)
+model_log = lm(log(rate) ~ log(signs))
+coefs = model$coefficients
+slope = round(coefs[2],3)
+intercept = round(coefs[1], 3)
+summary(model)
+summary(model_log)
+```
+
+
+
+
+```{r significant}
+1-pt(4.6,37)
+
+```
+### A 
+The model parameters are the slope (`r slope`) and intercept (`r intercept`) of the linear regression model.  
+
+### B
+
+The equation to the least squares line is:
+
+$$
+\begin{aligned}
+Y = & \beta_0 +\beta_1X\\
+= & 3.013 + 1.802X
+\end{aligned}
+$$
+ 
+
+### C 
+
+The interpretation of the slope is that there is a 1.8 increase in the accident rate per million vehicle miles for every 1 signal increase per mile of roadway on average.  The null hypothesis, $H_0:\text{ }\beta_1=0$ is rejected because the p-value is close to 0, 4.82e-05, and using the standard error as an approximation for the standard deviation puts 0 more than 4 standard deviations away from a slope of 0.  We can also conclude that $\beta_1$ is statistically positive because the probability of a t-distribution is 2.409184e-05, very close to 0, 
+
+### D
+```{r conf}
+
+confint(model, level = .95)
+confint(model_log, level = .95)
+```
+
+The confidence interval of the slope is between 1.008 and 2.596.  This confirms our earlier assessment that we can reject the null hypothesis, $H_0:\text{ }\beta_1=0$, because 0 is not within the bounds of this confidence interval.
+
+
+
+## Question 3
+
+
+
+#### Assumptions
+1. Linearity
+2. Constant Variance
+3. Independence
+4. Normality
+
+
+```{r plots}
+library(car)
+par(mfrow=c(2,2))
+p1 = plot(signs, rate)
+p2 = plot(model$fitted, model$residuals)
+p3 = qqPlot(model$residuals)
+p4 = hist(model$residuals)
+```
+
+
+#### Linearity
+Looking at the first plot I can see that there is a positive linear correlation between signs and rate so I would conclude that the linearity assumption holds.
+
+#### Constant Variance
+The second plot, which is the fitted values versus the model residuals, we can see that the residuals are scattered around the 0 line.
+Although there is a cluster at the lower end of the fitted values, I would say the constant variance holds.
+
+#### Independence
+The second plot also indicates that we have uncorrelated errors because the values are scattered with only one cluster.  This is not a true test of independence, but can be used as a proxy.  
+
+#### Normality
+The model deviates from the normality assumption as seen in the q-q plot.  THere are values outside the confidence interval on upper tail of the plot. The histogram is right skewed as a result.
+
+### Log model
+I decided to run these plots again taking the log of the predictor and response variable to see if it gave a better result.
+
+```{r log_plots}
+
+par(mfrow=c(2,2))
+p1 = plot(log(signs), log(rate))
+p2 = plot(model_log$fitted, model_log$residuals)
+p3 = qqPlot(model_log$residuals)
+p4 = hist(model_log$residuals)
+```
+
+#### Linearity
+Looking at the first plot I can see that there is a positive linear correlation between the log signs and log rate so I would conclude that the linearity assumption holds.
+
+#### Constant Variance
+The second plot, which is the fitted values versus the model residuals, we can see that the residuals are scattered around the 0 line.
+The new log model does not have the cluster of residuals that the previous model had, so this is a stronger indication of constant variance.
+
+#### Independence
+The second plot also indicates that we have uncorrelated errors because the values are scattered without any clustering.  Again, this is not a true test of independence, but can be used as a proxy.  
+
+#### Normality
+The model does not deviate too radically as seen in the q-q plot as it did in the previous model.  Therefore the normality assumption holds for this model, where it did not for the previous, because all pointss fall within the confidence intervals.
+
+### Outliers
+
+I do not see any extreme outliers in the data of the second model, however, the first model's q-q plot indicates some outliers on the upper tail end of the data.  
+
+## Question 4
+
+```{r prediction}
+new = data.frame(signs = 1.25)
+
+predict.lm(model, new, interval="predict", level = .95)
+exp(predict.lm(model_log, new, interval="predict", level = .95))
+```
+
+
+The top prediction is the untransformed model and the bottom is the log model.  The predictions are not far off from each other, but the prediction bands are much larger on the log-log model.  The results show that there is a predicted rate of 1.92 and 8.61 accidentes per mile with an average of 1.25 signs per mile for the first model, and a predicted rate of between 2.33 and 11.20 for the log-log model.
