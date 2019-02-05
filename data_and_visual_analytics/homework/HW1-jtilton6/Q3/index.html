@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8">
+		<title>jtilton6</title>
+		<script type="text/javascript" src="d3/d3.v3.min.js"></script>
+		<style type="text/css">
+			/* No style rules here yet */
+		</style>
+	</head>
+	<body>
+		<script type="text/javascript">
+			//Width and height
+			var w = 500;
+			var h = 300;
+			var padding = 30;
+			
+			function getRand(min, max) {
+    			val = Math.random() * (max - min) + min
+    			if (val > max-1){
+            			return Math.floor(val);
+    			}else{
+            			return val;
+    			}
+              
+            } 
+			
+			function makeArray(min, max, n){
+    			var data = []
+    			var step;
+                for (step = 0; step < n+1; step++) {
+                  data[step] = getRand(min, max);
+                }
+    			return data;
+			}
+			
+			function makeData(min, max, n){
+    			var x = makeArray(min, max, n);
+    			var i, len, y = makeArray(min, max, n);
+    			var data = []
+                for (len = y.length, i=0; i<len; ++i) {
+                    data[i] = {'x':x[i], 'y':y[i]}
+                }
+    			return data;
+			}
+			
+			function distance(x,y){
+    			return Math.pow(Math.pow(x,2)+Math.pow(y,2), .5)
+			}
+			
+			function getDists(dataset){
+    			var i, len;
+    			var data = []
+                for (len = dataset.length, i=0; i<len; ++i) {
+                    data[i] = distance(dataset[i].x,dataset[i].y)
+                }
+    			return data;
+			
+			}
+			
+			
+			
+			var data = makeData(10,251,99);
+			var dist = getDists(data);
+			
+			var xMax = d3.max(data, function(d) {    
+                            return d.x;  
+                        });
+			
+			var yMax = d3.max(data, function(d) {    //Returns 480
+                           return d.y;  
+                        });
+                        
+            var myMax = Math.max(xMax, yMax);
+            
+            
+            var xMin = d3.min(data, function(d) {    //Returns 480
+                            return d.x;  //References first value in each sub-array
+                        });
+			
+			var yMin = d3.min(data, function(d) {    //Returns 480
+                           return d.y;  //References first value in each sub-array
+                        });
+            var xAvg = d3.mean(data, function(d){return d.x;});         
+            
+            
+            
+            var xScale = d3.scale.linear()
+                     .domain([0, xMax+20])
+                     .range([padding, w-padding*2]);
+            
+            var yScale = d3.scale.linear()
+                     .domain([0, yMax+20])
+                     .range([h-padding, padding]);
+                     
+            var rScale = d3.scale.linear()
+                     .domain([Math.min.apply(null, dist), Math.max.apply(null,dist)])
+                     .range([1,5]);        
+                     
+            
+            var xAxis = d3.svg.axis()
+                  .scale(xScale)
+                  .orient("bottom");
+                  
+            var yAxis = d3.svg.axis()
+                  .scale(yScale)
+                  .orient("left");
+                  
+            
+                  
+                  
+            var svg = d3.select('body')
+                        .append('svg')
+                        .attr('width', w)
+                        .attr('height', h);
+                        
+                                
+                        
+            svg.selectAll('circle')
+                .data(data)
+                .enter()
+                .append('circle')
+                .attr('cx', function(d){
+                        return xScale(d.x)})
+                .attr('cy', function(d){
+                        return yScale(d.y)})  
+                .attr('r', function(d){return rScale(distance(d.x,d.y))})
+                .attr('stroke', function(d){
+                            if (d.x>xAvg){
+                                    return 'blue'
+                                }else{ 
+                                    return 'green'}
+                                })
+                .attr('fill', 'none');   
+                
+                
+            svg.selectAll("text")
+               .data(data)
+               .enter()
+               .append("text")
+               .text(function(d) {
+                   if (d.y == yMin){
+                       return "Y min = "+Math.round(yMin, 2);}
+               })
+               .attr("x", function(d) {return xScale(d.x);})
+               .attr("y", function(d) {return yScale(d.y);});
+
+			svg.append("g")
+                .attr("class", "axis")
+                .attr("transform", "translate(0," + (h - padding) + ")")
+                .call(xAxis);
+                
+           	svg.append("g")
+                .attr("class", "axis")
+                .attr("transform", "translate(" + 36 + ",0)")
+                .call(yAxis);     
+                
+            svg.append("text")
+                .attr("class", "title")
+                .attr("x", w/2)
+                .attr("y", padding)
+                .attr("text-anchor", "middle")
+                .text("jtilton6");
+                
+		</script>
+	</body>
+</html>
