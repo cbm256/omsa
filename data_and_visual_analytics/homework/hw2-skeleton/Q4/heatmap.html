@@ -116,6 +116,7 @@ line{
                   return "rotate(-90)"
               })
 
+
       return data
     }
 
@@ -137,6 +138,7 @@ line{
 
       //data layer for update
       dataGroup = svg.append("g")
+              .attr('class', 'datagroup')
 
       //enter
       cells = dataGroup.selectAll("rect")
@@ -177,7 +179,10 @@ line{
                 .attr("y", cellSize)
 
       //exit
-              dataGroup.exit().remove();
+              svg.exit().remove()
+              dataGroup.exit().remove()
+              legend.exit().remove()
+              legendLabs.exit().remove()
 
       //non-updated data
       legendTitle = legend.append("g")
