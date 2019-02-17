@@ -63,16 +63,17 @@ line{
         width = 1100 - margin.left - margin.right,
         height = 1100 - margin.top - margin.bottom;
     var cellSize = 50
-    function heatmap(data){
-      x = d3.set(data, function(d) {return d.Type}).values()
-      y = d3.set(data, function(d){return d.City}).values()
 
-      minVal = d3.min(data,function(d){return d.Value})
-      maxVal = d3.max(data, function(d){return d.Value})
+
+
+
+    function heatmap(data){
+      x = d3.set(data, function(d) {return d.Type}).values().sort()
+      y = d3.set(data, function(d){return d.City}).values().sort()
+
       locRange = range(0, (1+cellSize)*(x.length), (1+cellSize))
       colors = 9
-      colorStep = Math.floor(maxVal/colors)
-      colorRange = range(0,maxVal-colorStep,colorStep).slice(1, colors)
+
       xScale = d3.scaleOrdinal()
               .domain(x)
               .range(locRange)
@@ -85,10 +86,6 @@ line{
       yAxis = d3.axisLeft()
               .scale(yScale)
 
-      colorScale = d3.scaleThreshold()
-              .domain(colorRange)
-              .range(['#fff7fb','#ece7f2','#d0d1e6','#a6bddb','#74a9cf','#3690c0','#0570b0','#045a8d','#023858'])
-
       //create svg element
       svg = d3.select('#p1')
               .append("svg")
@@ -98,7 +95,6 @@ line{
       border = svg.append('g')
               .attr("id", "border")
               .attr("transform", "translate(" + margin.left + "," + margin.top + ")")
-
 
       //axis labels
       yLabs = svg.append("g")
@@ -120,19 +116,46 @@ line{
                   return "rotate(-90)"
               })
 
-      legend = svg.append("g")
-              .attr("transform", "translate("+margin.left+"," +(2*cellSize+(cellSize)*(1+x.length))+")")
+      return data
+    }
 
+
+    function update(data){
+      minVal = d3.min(data,function(d){return d.Value})
+      maxVal = d3.max(data, function(d){return d.Value})
+      colorStep = Math.floor(maxVal/colors)
+      colorRange = range(0,maxVal-colorStep,colorStep).slice(1, colors)
+      colorScale = d3.scaleThreshold()
+              .domain(colorRange)
+              .range(['#fff7fb','#ece7f2','#d0d1e6','#a6bddb','#74a9cf','#3690c0','#0570b0','#045a8d','#023858'])
+
+      //create data for legend
       legendData = [{x:-2*cellSize, Value:0}]
       for(i=0; i<colorRange.length; i++){
         legendData[i+1] = {x:(i*cellSize - cellSize), Value: colorRange[i]}
       }
 
+      //data layer for update
+      dataGroup = svg.append("g")
+
       //enter
-      cells = svg.selectAll("rect")
+      cells = dataGroup.selectAll("rect")
               .data(data)
               .enter()
-              .append('g')
+
+      legend = dataGroup.append("g")
+              .attr("transform", "translate("+margin.left+"," +(2*cellSize+(cellSize)*(1+x.length))+")")
+              .selectAll("rect")
+              .data(legendData)
+              .enter()
+
+      legendLabs = legend.append("g")
+              .selectAll('text')
+              .data(legendData)
+              .enter()
+
+      //update
+              cells.append('g')
                 .append('rect')
                 .attr('class', 'cell')
                 .attr('width', cellSize)
@@ -141,44 +164,62 @@ line{
                 .attr('y', function(d){return yScale(d.City)+margin.top})
                 .attr('fill', function(d){return colorScale(d.Value)})
 
-      legend.selectAll("rect")
-              .data(legendData)
-              .enter()
-              .append("rect")
-              .attr("class", "cell")
-              .attr("width", cellSize)
-              .attr("height", cellSize/2)
-              .attr("x", function(d){return d.x})
-              .attr('fill', function(d){ return colorScale(d.Value)})
+              legend.append("rect")
+                .attr("class", "cell")
+                .attr("width", cellSize)
+                .attr("height", cellSize/2)
+                .attr("x", function(d){return d.x})
+                .attr('fill', function(d){ return colorScale(d.Value)})
 
-      legendLabs = legend.append("g")
-              .selectAll('text')
-              .data(legendData)
-              .enter()
-              .append("text")
-              .text(function(d){return d.Value})
+              legend.append("text")
+                .text(function(d){return d.Value})
                 .attr("x",function(d){return d.x})
                 .attr("y", cellSize)
 
+      //exit
+              dataGroup.exit().remove();
+
+      //non-updated data
       legendTitle = legend.append("g")
               .append("text")
               .text("Number of Crimes")
               .attr('x', -2*cellSize)
               .attr('y', -10)
 
-    footer = svg.append("g")
+      footer = dataGroup.append("g")
               .attr("transform", "translate("+margin.left+"," +(3*cellSize+(cellSize)*(1+x.length))+")")
               .append("text")
               .text("Figure 4a: Number of crimes of each type in each neighborhood")
               .attr('x', -2*cellSize)
               .attr('y', 30)
-
     }
-    data = d3.csv("heatmap.csv", rowConverter)
-              .then(wideToLong)
-              .then(function(data){return data.filter(row => row.Year == 2011)})
 
-    data.then(heatmap)
+    var opts = [2011, 2012, 2013, 2014, 2015];
+
+    var select = d3.select('body')
+      .append('select')
+      	.attr('class','select')
+        .on('change',onchange)
+
+    var options = select
+      .selectAll('option')
+    	.data(opts).enter()
+    	.append('option')
+    		.text(function (d) { return d; });
+
+    function onchange() {
+    	selectValue = d3.select('select').property('value')
+    	rawdata.then(function(data){return data.filter(row => row.Year == selectValue)}).then(update)
+
+    };
+
+
+    rawdata = d3.csv("heatmap.csv", rowConverter)
+              .then(wideToLong)
+
+
+    rawdata.then(function(data){return data.filter(row => row.Year == 2011)})
+              .then(heatmap).then(update)
 
 
 </script>
