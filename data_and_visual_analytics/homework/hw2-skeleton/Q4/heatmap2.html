@@ -178,10 +178,12 @@ line{
     cells = cellGroup.selectAll(".crimes")
             .data(data, function(d) {return d.Value})
 
+
     //enter/update
     cells.enter()
             .append('rect')
             .merge(cells)
+            .transition().duration(1000) 
             .attr("class", 'crimes new')
             .attr('width', cellSize)
             .attr("height", cellSize)
