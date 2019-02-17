@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<script src="../lib/d3.v5.min.js"></script>
+<style>
+
+
+</style>
+<body>
+<script>
+    //Load in the data
+    
+    
+    var margin = {top: 20, right: 200, bottom: 100, left: 100},
+    width = 1300 - margin.left - margin.right,
+    height = 650 - margin.top - margin.bottom;
+    
+    
+    
+    rowConverter = function(d){
+        return {
+            WinsNoms: parseFloat(d.WinsNoms),
+            WinsNomsLog: Math.log(parseInt(d.WinsNoms)),
+            Rating: parseFloat(d.Rating),
+            Budget: parseFloat(d.Budget),
+            IsGoodRating:parseInt(d.IsGoodRating),
+            Votes:parseInt(d.Votes)
+            }
+        }
+        
+        
+    
+    var p1 = function(data){
+        var x = data[1]
+        var y = data[2]
+        var id = data[3]
+        var title = data[4]
+        var data =data[0]
+        
+        var xMin = d3.min(data, function(d){return d[x]})
+        var xMax = d3.max(data, function(d){return d[x]})
+       
+        var yMin = d3.min(data, function(d){return d[y]})
+        var yMax = d3.max(data, function(d){return d[y]})
+        
+        var xScale = d3.scaleLinear()
+                        .domain([xMin-.5, xMax])
+                        .range([margin.left, width - margin.left-margin.right])
+                        
+        var yScale = d3.scaleLinear()
+                        .domain([0,yMax])
+                        .range([height-margin.top-margin.bottom, margin.top])
+        
+        var svg = d3.select("#"+id)
+							.append("svg")
+							.attr("width", width)
+							.attr("height", height)
+							
+							
+		var xAxis = d3.axisBottom()
+						.scale(xScale)
+						.ticks(10)
+						
+		var yAxis = d3.axisLeft()
+						.scale(yScale)
+						.ticks(10)
+						
+		var shape = d3.scaleOrdinal()
+		                .domain(0,1)
+		                .range([d3.symbolCircle,d3.symbolCross])
+
+        var symbol = d3.symbol();
+						
+		// Add the points!
+        svg.selectAll(".point")
+            .data(data)
+            .enter().append("path")
+            .attr('d', d => symbol.size(20).type(shape(d.IsGoodRating))())
+            .attr("transform", function(d) { return "translate(" + xScale(d[x]) + "," + yScale(d[y]) + ")"; })
+            .attr("fill", function(d){
+                if(d.IsGoodRating){
+                    return "blue"
+                }else{
+                    return "red"}
+                })
+					
+		
+        //Create X axis
+	   	svg.append("g")
+	   		.attr("class", "axis")
+	   		.attr("transform", "translate(0," + (height - margin.top-margin.bottom) + ")")
+	   		.call(xAxis);
+	   			
+	   	//Create Y axis
+	   	svg.append("g")
+	   		.attr("class", "axis")
+	   		.attr("transform", "translate(" + (margin.left ) + ",0)")
+	   		.call(yAxis);
+	   	
+
+        // text label for the x axis
+        svg.append("text")             
+            .attr("transform",
+                "translate(" + (width/2.25) + " ," + (height-50)+ ")")
+            .style("text-anchor", "middle")
+            .text(x);
+
+        // text label for the y axis
+        svg.append("text")
+            .attr("transform", "rotate(-90)")
+            .attr("y", 0 )
+            .attr("x",-200 )
+            .attr("dy", "1em")
+            .style("text-anchor", "middle")
+            .text(y);      	
+	   	// text label for the Title
+        svg.append("text")             
+            .attr("transform",
+                "translate(" + (margin.left) + " ," + 
+                (20 ) + ")")
+            .style("text-anchor", "start")
+            .text(title);    	
+	   		
+	   // add legend
+        var legendWidth = 100;
+        var legendHeight = 90;
+
+        var legend = d3.select("#"+id).select('svg').append('g')
+
+
+        legend.selectAll(".point")
+            .data([{"IsGoodRating":1,"x":950, "y":45},{"IsGoodRating":0,"x":950, "y":72}])
+            .enter().append("path")
+            .attr('d', d => symbol.type(shape(d.IsGoodRating))())
+            .attr("transform", function(d) { return "translate(" + d.x+ "," + d.y+ ")"; })
+            .attr("fill", function(d){
+                if(d.IsGoodRating){
+                    return "blue"
+                }else{
+                    return "red"}
+                })
+        legend.append("text")
+                .text("Good Rating")
+                .attr("x",width-150)
+                .attr("y",margin.top+30)
+        
+        legend.append("text")
+                .text("Bad Rating")
+                .attr("x",width-150)
+                .attr("y",margin.top+55)
+    
+        
+        
+		
+    }
+    
+    
+    
+    
+    var p2 = function(data){
+        var x = data[1]
+        var y = data[2]
+        var id = data[3]
+        var title = data[4]
+        var data =data[0]
+        
+        var xMin = d3.min(data, function(d){return d[x]})
+        var xMax = d3.max(data, function(d){return d[x]})
+       
+        var yMin = d3.min(data, function(d){return d[y]})
+        var yMax = d3.max(data, function(d){return d[y]})
+        
+        var xScale = d3.scaleLinear()
+                        .domain([xMin-.5, xMax])
+                        .range([margin.left, width - margin.left-margin.right])
+                        
+        var yScale = d3.scaleLinear()
+                        .domain([0,yMax])
+                        .range([height-margin.top-margin.bottom, margin.top])
+        
+        var svg = d3.select("#"+id)
+							.append("svg")
+							.attr("width", width)
+							.attr("height", height)
+							
+							
+		var xAxis = d3.axisBottom()
+						.scale(xScale)
+						.ticks(10)
+						
+		var yAxis = d3.axisLeft()
+						.scale(yScale)
+						.ticks(10)
+						
+		var shape = d3.scaleOrdinal()
+		                .domain(0,1)
+		                .range([d3.symbolCircle,d3.symbolCross])
+
+        var symbol = d3.symbol();
+						
+		// Add the points!
+        svg.selectAll(".point")
+            .data(data)
+            .enter().append("path")
+            .attr('d', d => symbol.size(d.WinsNoms).type(shape(d.IsGoodRating))())
+            .attr("transform", function(d) { return "translate(" + xScale(d[x]) + "," + yScale(d[y]) + ")"; })
+            .attr("fill", function(d){
+                if(d.IsGoodRating){
+                    return "blue"
+                }else{
+                    return "red"}
+                })
+					
+		
+        //Create X axis
+	   	svg.append("g")
+	   		.attr("class", "axis")
+	   		.attr("transform", "translate(0," + (height - margin.top-margin.bottom) + ")")
+	   		.call(xAxis);
+	   			
+	   	//Create Y axis
+	   	svg.append("g")
+	   		.attr("class", "axis")
+	   		.attr("transform", "translate(" + (margin.left ) + ",0)")
+	   		.call(yAxis);
+	   	
+
+        // text label for the x axis
+        svg.append("text")             
+            .attr("transform",
+                "translate(" + (width/2.25) + " ," + 
+                (height-50 ) + ")")
+            .style("text-anchor", "middle")
+            .text(x);
+
+        // text label for the y axis
+        svg.append("text")
+            .attr("transform", "rotate(-90)")
+            .attr("y", 0 )
+            .attr("x",-200 )
+            .attr("dy", "1em")
+            .style("text-anchor", "middle")
+            .text(y);  
+            
+            
+            
+        // text label for the Title
+        svg.append("text")             
+            .attr("transform",
+                "translate(" + (margin.left) + " ," + 
+                (20 ) + ")")
+            .style("text-anchor", "start")
+            .text(title);    	
+	   		
+	   		
+	   // add legend
+        var legendWidth = 100;
+        var legendHeight = 90;
+
+        var legend = d3.select("#"+id).select('svg').append('g')
+
+
+        legend.selectAll(".point")
+            .data([{"IsGoodRating":1,"x":950, "y":45},{"IsGoodRating":0,"x":950, "y":72}])
+            .enter().append("path")
+            .attr('d', d => symbol.type(shape(d.IsGoodRating))())
+            .attr("transform", function(d) { return "translate(" + d.x+ "," + d.y+ ")"; })
+            .attr("fill", function(d){
+                if(d.IsGoodRating){
+                    return "blue"
+                }else{
+                    return "red"}
+                })
+        legend.append("text")
+                .text("Good Rating")
+                .attr("x",width-150)
+                .attr("y",margin.top+30)
+        
+        legend.append("text")
+                .text("Bad Rating")
+                .attr("x",width-150)
+                .attr("y",margin.top+55)
+    
+        
+        
+		
+    }
+        
+        
+        
+    var p3 = function(data){
+        var x = data[1]
+        var y = data[2]
+        var id = data[3]
+        var title = data[4]
+        var data =data[0]
+        
+        var xMin = d3.min(data, function(d){return d[x]})
+        var xMax = d3.max(data, function(d){return d[x]})
+       
+        var yMin = d3.min(data, function(d){return d[y]})
+        var yMax = d3.max(data, function(d){return d[y]})
+        
+        var xScale = d3.scaleLinear()
+                        .domain([xMin-.5, xMax])
+                        .range([margin.left, width - margin.left-margin.right])
+                        
+        var yScale = d3.scaleSqrt()
+                        .domain([0,yMax])
+                        .range([height-margin.top-margin.bottom, margin.top])
+        
+        var svg = d3.select("#"+id)
+							.append("svg")
+							.attr("width", width)
+							.attr("height", height)
+							
+							
+		var xAxis = d3.axisBottom()
+						.scale(xScale)
+						.ticks(10)
+						
+		var yAxis = d3.axisLeft()
+						.scale(yScale)
+						.ticks(10)
+						
+		var shape = d3.scaleOrdinal()
+		                .domain(0,1)
+		                .range([d3.symbolCircle,d3.symbolCross])
+
+        var symbol = d3.symbol();
+						
+		// Add the points!
+        svg.selectAll(".point")
+            .data(data)
+            .enter().append("path")
+            .attr('d', d => symbol.size(20).type(shape(d.IsGoodRating))())
+            .attr("transform", function(d) { return "translate(" + xScale(d[x]) + "," + yScale(d[y]) + ")"; })
+            .attr("fill", function(d){
+                if(d.IsGoodRating){
+                    return "blue"
+                }else{
+                    return "red"}
+                })
+					
+		
+        //Create X axis
+	   	svg.append("g")
+	   		.attr("class", "axis")
+	   		.attr("transform", "translate(0," + (height - margin.top-margin.bottom) + ")")
+	   		.call(xAxis);
+	   			
+	   	//Create Y axis
+	   	svg.append("g")
+	   		.attr("class", "axis")
+	   		.attr("transform", "translate(" + (margin.left ) + ",0)")
+	   		.call(yAxis);
+	   	
+
+        // text label for the x axis
+        svg.append("text")             
+            .attr("transform",
+                "translate(" + (width/2.25) + " ," + (height-50)+ ")")
+            .style("text-anchor", "middle")
+            .text(x);
+
+        // text label for the y axis
+        svg.append("text")
+            .attr("transform", "rotate(-90)")
+            .attr("y", 0 )
+            .attr("x",-200 )
+            .attr("dy", "1em")
+            .style("text-anchor", "middle")
+            .text(y);      	
+	   	// text label for the Title
+        svg.append("text")             
+            .attr("transform",
+                "translate(" + (margin.left) + " ," + 
+                (20 ) + ")")
+            .style("text-anchor", "start")
+            .text(title);    	
+	   		
+	   // add legend
+        var legendWidth = 100;
+        var legendHeight = 90;
+
+        var legend = d3.select("#"+id).select('svg').append('g')
+
+
+        legend.selectAll(".point")
+            .data([{"IsGoodRating":1,"x":950, "y":45},{"IsGoodRating":0,"x":950, "y":72}])
+            .enter().append("path")
+            .attr('d', d => symbol.type(shape(d.IsGoodRating))())
+            .attr("transform", function(d) { return "translate(" + d.x+ "," + d.y+ ")"; })
+            .attr("fill", function(d){
+                if(d.IsGoodRating){
+                    return "blue"
+                }else{
+                    return "red"}
+                })
+        legend.append("text")
+                .text("Good Rating")
+                .attr("x",width-150)
+                .attr("y",margin.top+30)
+        
+        legend.append("text")
+                .text("Bad Rating")
+                .attr("x",width-150)
+                .attr("y",margin.top+55)
+    
+        
+        
+		
+    }
+    var p4 = function(data){
+        var x = data[1]
+        var y = data[2]
+        var id = data[3]
+        var title = data[4]
+        var data =data[0]
+        
+        var xMin = d3.min(data, function(d){return d[x]})
+        var xMax = d3.max(data, function(d){return d[x]})
+       
+         yMin = d3.min(data, function(d){
+                        if(d[y]>0){
+                        return d[y]}else{
+                        return 10000000000}})
+        var yMax = d3.max(data, function(d){return d[y]})
+        
+        var xScale = d3.scaleLog()
+                        .domain([xMin-.5, xMax])
+                        .range([margin.left, width - margin.left-margin.right])
+                        
+        var yScale = d3.scaleLinear()
+                        .domain([yMin,yMax])
+                        .range([height-margin.top-margin.bottom, margin.top])
+        
+        var svg = d3.select("#"+id)
+							.append("svg")
+							.attr("width", width)
+							.attr("height", height)
+							
+							
+		var xAxis = d3.axisBottom()
+						.scale(xScale)
+						.ticks(10)
+						
+		var yAxis = d3.axisLeft()
+						.scale(yScale)
+						.ticks(10)
+						
+		var shape = d3.scaleOrdinal()
+		                .domain(0,1)
+		                .range([d3.symbolCircle,d3.symbolCross])
+
+        var symbol = d3.symbol();
+						
+		// Add the points!
+        svg.selectAll(".point")
+            .data(data)
+            .enter().append("path")
+            .attr('d', d => symbol.size(20).type(shape(d.IsGoodRating))())
+            .attr("transform", function(d) { return "translate(" + xScale(d[x]) + "," + yScale(d[y]) + ")"; })
+            .attr("fill", function(d){
+                if(d.IsGoodRating){
+                    return "blue"
+                }else{
+                    return "red"}
+                })
+					
+		
+        //Create X axis
+	   	svg.append("g")
+	   		.attr("class", "axis")
+	   		.attr("transform", "translate(0," + (height - margin.top-margin.bottom) + ")")
+	   		.call(xAxis);
+	   			
+	   	//Create Y axis
+	   	svg.append("g")
+	   		.attr("class", "axis")
+	   		.attr("transform", "translate(" + (margin.left ) + ",0)")
+	   		.call(yAxis);
+	   	
+
+        // text label for the x axis
+        svg.append("text")             
+            .attr("transform",
+                "translate(" + (width/2.25) + " ," + (height-50)+ ")")
+            .style("text-anchor", "middle")
+            .text(x);
+
+        // text label for the y axis
+        svg.append("text")
+            .attr("transform", "rotate(-90)")
+            .attr("y", 0 )
+            .attr("x",-200 )
+            .attr("dy", "1em")
+            .style("text-anchor", "middle")
+            .text(y);      	
+	   	// text label for the Title
+        svg.append("text")             
+            .attr("transform",
+                "translate(" + (margin.left) + " ," + 
+                (20 ) + ")")
+            .style("text-anchor", "start")
+            .text(title);    	
+	   		
+	   // add legend
+        var legendWidth = 100;
+        var legendHeight = 90;
+
+        var legend = d3.select("#"+id).select('svg').append('g')
+
+
+        legend.selectAll(".point")
+            .data([{"IsGoodRating":1,"x":950, "y":45},{"IsGoodRating":0,"x":950, "y":72}])
+            .enter().append("path")
+            .attr('d', d => symbol.type(shape(d.IsGoodRating))())
+            .attr("transform", function(d) { return "translate(" + d.x+ "," + d.y+ ")"; })
+            .attr("fill", function(d){
+                if(d.IsGoodRating){
+                    return "blue"
+                }else{
+                    return "red"}
+                })
+        legend.append("text")
+                .text("Good Rating")
+                .attr("x",width-150)
+                .attr("y",margin.top+30)
+        
+        legend.append("text")
+                .text("Bad Rating")
+                .attr("x",width-150)
+                .attr("y",margin.top+55)
+    
+        
+        
+		
+    }
+    
+    async function getData(){
+        //Load in the data
+                const rawdata = await d3.csv("movies.csv")
+        			return rawdata
+        			
+    			}
+
+    data = d3.csv("movies.csv", rowConverter)
+    data.then(function(data){return [data, 'Rating', 'WinsNoms','p1','Wins+Nominations vs. Rating']}).then(p1)
+    data.then(function(data){return [data, 'Rating', 'Budget','p2','Budget vs. Rating']}).then(p1)
+    data.then(function(data){return [data, 'Rating', 'Votes','p3', 'Rating sized by Wins+Nominations']}).then(p2)
+    data.then(function(data){return [data, 'Rating', 'WinsNoms','p4', 'Wins+Nominations (square-root-scaled) vs. Rating']}).then(p3)
+    data.then(function(data){return [data, 'Rating', 'WinsNoms','p5', 'Wins+Nominations (log-scaled) vs. Rating']}).then(p4)
+</script>
+<div id="p1"></div>
+<div id="p2"></div>
+<div id="p3"></div>
+<div id="p4"></div>
+<div id="p5"></div>
+</body>
+</html>
+
+
+
