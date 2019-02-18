@@ -8,6 +8,10 @@ rect:hover{
   color: black;
 
 }
+
+
+
+
 text rect {
       font-family: sans-serif;
       font-size: 15px;
@@ -44,29 +48,40 @@ var dataset=[{country: 'Bangladesh', population_2012: 105905297, growth: {year_2
   margin = {top: 100, right: 100, bottom: 100, left: 100}
   width = 1100 - margin.left - margin.right
   height = 500 - margin.top - margin.bottom
-  barHeight = 20
+  barHeight = 30
 
 
   svg = d3.select('#p1')
           .append("svg")
+
+
+  svgAttr = d3.select("svg")
           .attr("width", width+margin.left+margin.right)
           .attr("height", height + margin.top + margin.bottom)
           .attr("transform", "translate(" + margin.left + "," + margin.top + ")")
 
   //create layer groups
-        svg.append("g")
+  barPlot = svg.append("g")
           .attr("id", 'barPlot')
           .attr("transform", "translate("+margin.left+",0)")
+
+  yLabs = svg.append("g")
+          .attr("class", "y axis")
+
 
 
   xScale = d3.scaleLinear()
           .domain([0, d3.max(data, function(d){return d.population_2012})])
-          .range([0,width/2])
-  yScale = d3.scaleOrdinal()
-          .domain(function(d){return d.country})
-          .range(range(0, height, height/data.length))
+          .range([0,width/1.5])
 
+  yScale = d3.scaleBand()
+            .domain(data.map(function (d) {
+                return d.country}))
+            .range([0, height])
 
+  yAxis = d3.axisLeft()
+          .scale(yScale)
+          .ticks(0)
 
 
   bars = d3.select("#barPlot")
@@ -75,34 +90,34 @@ var dataset=[{country: 'Bangladesh', population_2012: 105905297, growth: {year_2
           .enter()
           .append("rect")
 
-
-  i=0
   barAttributes = bars
+          .attr("y", function(d){return yScale(d.country)})
           .attr("height", barHeight)
           .attr("width", function(d){return xScale(d.population_2012)})
-          .attr("y", function(){
-            i++
-            return yScale(i)
-          })
-        .attr("fill", "#d9d9d9")
+          .attr("fill", "#969696")
+  yLabs
+    .attr("class", 'y axis')
+    .call(yAxis)
+    .selectAll("text")
+    .attr("y", function(d){return yScale(d.country)})
+    .attr("fill", "#969696")
+    .attr("transform", "translate(" + margin.left + ","+-barHeight/2+ ")")
 
-          d3.select("#barPlot")
-                  .selectAll('rect')
-          .text(function(d){return d.country})
+  yLabs
+    .select("path")
+    .style("stroke", "none")
 
-  text = svg.selectAll("text")
-          .data(data, function(d){d.country})
+  text = d3.select('#barPlot')
+          .selectAll("text")
+          .data(data, function(d){return d.population_2012})
           .enter()
           .append("text")
-  z=0
-  testAttributes = text
-          .attr("y", function(){
-            z++
-            return yScale(z) + barHeight
-          })
-          .text(function(d){return d.country})
-          .attr("fill", "black")
 
+  textAttributes = text
+          .attr("fill", "white")
+          .text(function(d){return d.population_2012})
+          .attr("y", function(d){return yScale(d.country)+barHeight/1.5})
+          .attr("x", 5)
 
 
 
