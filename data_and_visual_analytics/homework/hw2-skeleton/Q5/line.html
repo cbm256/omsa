@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<script src="../lib/d3.v5.min.js"></script>
+<style>
+
+#pctChg{
+  stroke:#2171b5;
+  fill: none;
+  stroke-width: 2px;
+
+}
+
+</style>
+<body>
+<div id="p1"></div>
+
+<script>
+var dataset=[{country: 'Bangladesh', population_2012: 105905297, growth: {year_2013:42488 , year_2014:934 , year_2015:52633 , year_2016:112822 , year_2017:160792}},
+        {country: 'Ethopia', population_2012: 75656319, growth: {year_2013:1606010 , year_2014:1606705 , year_2015:1600666 , year_2016:1590077 , year_2017:1580805}},
+        {country: 'Kenya', population_2012: 33007327, growth: {year_2013:705153 , year_2014:703994 , year_2015:699906 , year_2016:694295 , year_2017:687910}},
+        {country: 'Afghanistan', population_2012: 23280573, growth: {year_2013:717151 , year_2014:706082 , year_2015:665025 , year_2016:616262 , year_2017:573643}},
+        {country: 'Morocco', population_2012: 13619520, growth: {year_2013:11862 , year_2014:7997 , year_2015:391 , year_2016:-8820 , year_2017:-17029}}]
+
+  function compare(a,b) {
+    if (a["cumulative_pop"] > b["cumulative_pop"])
+      return -1;
+    if (a["cumulative_pop"] < b["cumulative_pop"])
+      return 1;
+    return 0;
+  }
+
+  function range(start, stop, step){
+    var a=[start], b=start;
+    while(b<stop){b+=(step || 1);a.push(b)}
+    return a;
+  };
+
+formatTime = d3.timeParse("%Y");
+
+  for(i=0;i<dataset.length;++i){
+    d = dataset[i]
+    cumulative_pop = d.population_2012
+    keys = Object.keys(d.growth)
+    pop_growth = []
+    max_pct_chg = 0
+    for(g=0;g<keys.length; ++g){
+      pop_change = d.growth[keys[g]]
+      pct_pop_chg = pop_change/cumulative_pop*100
+      pop_growth[g] ={"year":formatTime(keys[g].split('_')[1]), "value": pct_pop_chg}
+      cumulative_pop += pop_change
+      if(pct_pop_chg>max_pct_chg){
+        max_pct_chg = pct_pop_chg
+      }
+    }
+    d.cumulative_pop = cumulative_pop
+    d.pop_growth = pop_growth
+    d.max_pct_chg = max_pct_chg
+  }
+
+  data = dataset.sort(compare)
+
+  linePlot = d3.select('#p1')
+          .append("svg")
+          .attr("id", "linesvg")
+
+
+
+  lineWidth = 350
+  lineHeight = 200
+  linePadding = 50
+
+  linePlotAttributes = linePlot
+          .attr("transform", "translate(0,"+500+")")
+          .attr("width", lineWidth)
+          .attr("height", lineHeight)
+
+  dataGroup = linePlot.append("g")
+            .attr("id", 'dataGroup')
+            .attr("transform", "translate("+2*linePadding+","+linePadding+")")
+  dataGroup
+    .append("path")
+    .attr("stroke", "#2171b5")
+    .attr("stroke-width", "2px")
+    .attr("id", "pctChg")
+
+  //create layer groups
+  yLabs = linePlot.append("g")
+          .attr("class", 'y axis')
+          .attr("transform", "translate("+2*linePadding+","+linePadding+")")
+
+
+  xLabs = linePlot.append("g")
+          .attr("class", "x axis")
+          .attr("transform", "translate("+2*linePadding+","+(lineHeight-linePadding)+")")
+
+  xScale = d3.scaleTime()
+          .domain([new Date(2012,1,1),new Date(2017,1,1)])
+          .range([0,lineWidth-2.5*linePadding,])
+          .nice()
+
+  yScale = d3.scaleLinear()
+          .range([(lineHeight-2*linePadding), 0])
+
+  linePlot.append("text")
+      .attr("transform",
+            "translate(" + (lineWidth/2) + " ," +
+                           (lineHeight) + ")")
+      .style("text-anchor", "middle")
+      .text("Date");
+
+
+// text label for the y axis
+  linePlot.append("text")
+      .attr("y",linePadding/2)
+      .attr("x",linePadding + 40)
+      .attr("dy", "1em")
+      .style("text-anchor", "start")
+      .text("%");
+
+  function update(data){
+    yMax = d3.max(data, function(d){return d.value})
+    yMin = d3.min(data, function(d){return d.value})
+    line = d3.line()
+      .x(function(d) { return xScale(d.year); })
+      .y(function(d) { return yScale(d.value); });
+
+    yScale
+      .domain([yMin, yMax])
+
+    //axis
+    xAxis = d3.axisBottom()
+            .scale(xScale)
+            .ticks(5)
+    yAxis = d3.axisLeft()
+            .scale(yScale)
+            .ticks(3)
+    yLabs
+      .attr("class", 'y axis')
+      .call(yAxis)
+
+    xLabs
+      .attr("class", 'x axis')
+      .call(xAxis)
+
+d3.select("#pctChg")
+      .data([data])
+      .attr("d", line)
+
+
+
+
+
+  }
+
+
+
+lineData = data[0].pop_growth
+
+update(lineData)
+
+
+
+
+
+
+
+
+
+
+
+
+</script>
+
+
+</body>
+</html>
