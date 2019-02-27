@@ -1,0 +1,25 @@
+1.Ease to develop
+    Bokeh: Easy to make interactive plots after a brief learning curve
+    Tableau: Easy to make plots if you do not know how to code, can be a little frustrating
+        trying to find the right button/toolbar
+    D3: No ease involved.  Everything has to be hand coded.
+2.Ease to Maintain the visualization for developers
+    Bokeh:  Easy to set up reusable functions and just change the inputs.  Haven't 
+        experienced any breaking changes in new versions.
+    Tableau:  Seems very stable and should be able to change data/titles easily.  I am 
+        sure they strive to make new versions back compatible.
+    D3: Hard, doesn't seem set up to make plots reusable, there have been some breaking
+        version changes (promises)
+3. Usability of visualization developed for end users
+    Bokeh: Interactivity makes them good for end users, but hard to deploy.
+    Tableau: limited deployment, hard to make interactive, less utility
+    D3: The most utility bc very interactive, easiest to deploy on the web.
+4. Scalability of visualization to “large” datasets
+    Bokeh: Scalable up to 100,000 data points, limited to browser capability
+    Tableau: Looks like it can handle hundreds of thousands of data points
+    D3: Limited to browser capability as Bokeh
+5. System requirements to run the visualization
+    Bokeh: least restrictive can output as static file (.png) or as html.
+    Tableau: Most restrictive, need license and try to feed you into a cloud based 
+    environment for sharing/running notebooks
+    D3: html/browser only.

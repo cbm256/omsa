@@ -5,11 +5,11 @@
 
 path.link {
   fill: none;
-  stroke-width: 1.5px;
+  
 }
 
 circle {
-  
+
   stroke: #fff;
   stroke: black;
   stroke-width: 1.5px;
@@ -303,8 +303,8 @@ var force = d3.forceSimulation()
     .on("tick", tick);
 
 
-    
-    
+
+
 var svg = d3.select("body").append("svg")
     .attr("width", width)
     .attr("height", height);
@@ -321,8 +321,12 @@ var path = svg.append("g")
     if(links[d.index].value==1){
         return "blue"
     }else{return "green"}
-    });
-
+    })
+.attr("stroke-width", function(d){
+    if(links[d.index].value==1){
+        return "1.5"
+    }else{return "5"}
+    })
 // define the nodes
 var node = svg.selectAll(".node")
     .data(force.nodes())
@@ -338,8 +342,8 @@ var node = svg.selectAll(".node")
 
 // add the nodes
 node.append("circle")
-    .attr("r", function(d) {      
-        d.weight = links.filter(function(l){ 
+    .attr("r", function(d) {
+        d.weight = links.filter(function(l){
             if(l.source.index ==d.index || l.target.index == d.index){
                 return true;
             }else{
@@ -347,7 +351,7 @@ node.append("circle")
             }).length;
         var minRadius = 10;
         return minRadius + (d.weight * 2);
-    })      
+    })
 
 var lables = node.append("text")
       .text(function(d) {
@@ -355,7 +359,7 @@ var lables = node.append("text")
         return d.name;
       })
       .attr("text-anchor", "middle")
-      .attr('y', function(d){return 18+d.weight * 2});    
+      .attr('y', function(d){return 18+d.weight * 2});
 
 node.append("title")
       .text(function(d) { return d.name; });
@@ -405,14 +409,11 @@ function dragended(d) {
 };
 function dblclick(d) {
   d3.select(this).classed("fixed", d.fixed = false);
-  
+
     d.fx = null;
     d.fy = null;
-  
+
 }
 </script>
 </body>
 </html>
-
-
-

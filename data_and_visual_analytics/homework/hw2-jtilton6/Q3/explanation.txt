@@ -1,0 +1,10 @@
+a. Rating is used in both plots so the comparison is between WinsNoms and Budget.  
+The WinsNoms does a better job of separation because the good rating has more variance
+than the bad rating in WinsNoms, where the variance is almost equal in the Budget.  
+
+c. Logarithmic scales are used to handle right skewness of the data, or represent 
+    percentage of change
+    
+    Square root scale can handle left skewness
+    
+    source: http://fmwww.bc.edu/repec/bocode/t/transint.html
