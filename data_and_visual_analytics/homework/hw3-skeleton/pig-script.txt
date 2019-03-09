@@ -1,0 +1,14 @@
+trigrams = LOAD 's3://cse6242-2019spring-trigrams-small/*' AS (trigram:chararray, year:int, occurrences:int, books:int);
+step1 = FILTER trigrams BY (occurrences>399) AND (books>14);
+grouped = group step1 by trigram;
+step2 = foreach grouped {
+    sum_occ = SUM(step1.occurrences);
+    sum_books = SUM(step1.books);
+    generate FLATTEN(step1.trigram), sum_occ as occurrences, sum_books as books;
+};
+step3 = FOREACH step2 GENERATE trigram, (float)occurrences/books as average;
+step4 = DISTINCT step3;
+step5 = ORDER step4 BY average DESC;
+step6 = limit step5 20;
+step7 = ORDER step6 by average DESC, trigram DESC;
+Store step7 into 's3://cse6242oan-2019spring-jtilton6/output-small/' using PigStorage();

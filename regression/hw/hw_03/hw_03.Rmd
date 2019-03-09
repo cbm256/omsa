@@ -1,0 +1,936 @@
+---
+title: "Homework 3"
+output:
+  rmarkdown::pdf_document:
+    fig_caption: yes        
+    includes:  
+      in_header: preamble-latex.tex
+---
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, fig.pos= "H")
+```
+
+
+```{r data}
+data = read.csv('sleep.csv', header=TRUE, sep = ',')
+
+head(data)
+```
+
+
+
+```{r variables}
+#Response Variables
+
+NonDreaming <- data$NonDreaming
+
+Dreaming <- data$Dreaming
+
+
+#Continuous Variables
+
+BodyWt <- data$BodyWt
+
+BrainWt <- data$BrainWt
+
+LifeSpan <- data$LifeSpan
+
+Gestation <- data$Gestation
+
+ 
+
+#Categorical Variables
+
+Predation <- data$Predation
+
+Exposure <- data$Exposure
+
+Danger <- data$Danger
+
+```
+
+## Question 1: Exploratory Data Analysis.
+
+    1a.  Using scatterplots, describe the relationship between NonDreaming and the continuous independent variables: BodyWt, BrainWt, LifeSpan and Gestation. Describe the general trend (direction and form).
+
+
+```{r q1a}
+pairs(NonDreaming~BodyWt+BrainWt+LifeSpan+Gestation) #or plot(data)
+```
+
+
+There is a weak negative correlation between non-dreaming and gestation.  There is possibly a weak negative correlation between non-dreaming and lifespan that could improve with a transformation.  There is not any discernible linear relationship between non-dreaming an body weight or brain weight.
+
+
+## 1b.  Calculate and interpret the correlation coefficients for continuous variables
+```{r q1b}
+NonDreamingcor <- cor(data[c(2,3,7,8)],data[4])
+
+NonDreamingcor
+```
+
+All correlations between non-dreaming and the continuous variables are negative.  Negative correlation means that as any of these continuous variables increase the non-dreaming will decrease, on average by some amount.  Gestation has the strongest correltaion with non-dreaming at -.61.   Interesting body weight and brain weight have a stronger correlation than lifespan.  
+
+## 1c.  Improving linearity
+
+Using the initial scatterplots, are you able to visually validate the direction and strength of the correlation coefficients?  If you see clusters of data points, try adding a directional line (abline) to the scatterplot by individually inspecting each predicting variable. You may need to transform the predicting continuous variable(s) to improve the linearity of the data.  You can also transform the predicting variable NonDreaming, to improve linearity, although not required.
+
+```{r q1c}
+
+#Inspect BodyWt
+
+plot(BodyWt, NonDreaming)
+abline(lm(NonDreaming ~ BodyWt, data = data))
+
+# Transform BodyWt
+
+plot(log(BodyWt), NonDreaming)
+abline(lm(NonDreaming ~log(BodyWt), data = data))
+
+#Inspect BrainWt
+plot(BrainWt, NonDreaming)
+abline(lm(NonDreaming ~ BrainWt, data = data))
+
+# Transform BrainWt
+plot(log(BrainWt), NonDreaming)
+abline(lm(NonDreaming ~log(BrainWt), data = data))
+
+#Inspect LifeSpan
+plot(LifeSpan, NonDreaming)
+abline(lm(NonDreaming ~ LifeSpan, data = data))
+
+# Transform LifeSpan
+plot(log(LifeSpan), NonDreaming)
+abline(lm(NonDreaming ~log(LifeSpan), data = data))
+
+#Inspect Gestation
+plot(Gestation, NonDreaming)
+abline(lm(NonDreaming ~ Gestation, data = data))
+
+# Transform Gestation
+plot(log(Gestation), NonDreaming)
+abline(lm(NonDreaming ~log(Gestation), data = data))
+
+```
+
+All scatterplots improved after the transformation most dramatically in body and brain weight.  This validates the correlation coefficient because all scatterplots show a negative slope as represented by the abline.  
+
+
+
+## 1d.  Using boxplots, describe the relationship between NonDreaming and the categorical independent variables Predation, Exposure, and Danger. Does NonDreaming vary with the categorical variables?
+
+
+
+```{r q1d}
+
+boxplot(NonDreaming ~ Predation, xlab = "Predation", ylab = "NonDreamy Sleep")
+
+boxplot(NonDreaming ~ Exposure, xlab = "Exposure", ylab = "NonDreamy Sleep")
+
+boxplot(NonDreaming ~ Danger, xlab = "Total Danger", ylab = "NonDreamy Sleep")
+```
+
+
+
+### Predation
+
+predation index (1-5)
+1 = minimum (least likely to be preyed upon);
+
+5 = maximum (most likely to be preyed upon)
+
+
+The animals least likely to be preyed upon have the highest spread and one of the lower median values for sleep.  The first and second most preyed upon animals (groups 4 and 5) have the lowest spread and have higher levels of non-dreamy sleep.  This seems logical, the most likely to be eaten alive do not rest easy!
+
+### Exposure
+		
+sleep exposure index (1-5)
+1 = least exposed (e.g. animal sleeps in a well-protected den);
+
+5 = most exposed
+
+The animals that are least exposed have the highest spread and have higher levels of non-dreamy sleep, compared to the least exposed that have lower amounts of non-dreamy sleep with a smaller spread.  This seems counterintuitive, I would expect animals that have the most exposure to have less dreamy sleep.
+
+### Danger
+		
+overall danger index (1-5) (based on the above two indices and other information)
+1 = least danger (from other animals);
+
+5 = most danger (from other animals)
+
+The animals that are in the most danger get the least amount of non-dreamy sleep with very little spread for group 5.  The animals least in danger get the most.  
+
+## 1e.  Based on this section for exploratory analysis, is it reasonable to assume a linear regression model? Would you suggest that NonDreaming varies with all or only some of the independent variables? Would you recommend using the categorical variables Predation, Exposure, and Danger  in the model? Why?
+
+I think it would be reasonable to assume a linear regression model using the Predation, Exposure and Danger categorical variables.  All of the variables seemed to have some level of negative correlation by looking at the boxplots.  Therefore, I think a linear regression model would fit this data and I would add them to the model.  
+
+
+
+## Question 2: Exploratory Data Analysis.
+
+    2a.  Using scatterplots, describe the relationship between Dreaming and the continuous independent variables: BodyWt, BrainWt, LifeSpan and Gestation. Describe the general trend (direction and form).
+
+
+```{r q2a}
+pairs(Dreaming~BodyWt+BrainWt+LifeSpan+Gestation) #or plot(data)
+```
+
+
+There is a weak negative correlation between dreaming and gestation.  There is possibly a weak negative correlation between dreaming and lifespan that could improve with a transformation.  There is not any discernible linear relationship between dreaming an body weight or brain weight.  THis looks very similar to the non-dreaming data.
+
+
+## 2b.  Calculate and interpret the correlation coefficients for continuous variables
+```{r q2b}
+Dreamingcor <- cor(data[c(2,3,7,8)],data[5])
+
+Dreamingcor
+```
+
+All correlations between dreaming and the continuous variables are negative.  Negative correlation means that as any of these continuous variables increase the dreaming will decrease, on average by some amount.  Gestation has the strongest correltaion with dreaming at -.41, followed by lifespan at -.27 with body and brainweight having a low correlation of -.07.
+
+## 2c.  Improving linearity
+
+Using the initial scatterplots, are you able to visually validate the direction and strength of the correlation coefficients?  If you see clusters of data points, try adding a directional line (abline) to the scatterplot by individually inspecting each predicting variable. You may need to transform the predicting continuous variable(s) to improve the linearity of the data.  You can also transform the predicting variable NonDreaming, to improve linearity, although not required.
+
+```{r q2c}
+
+#Inspect BodyWt
+
+plot(BodyWt, Dreaming)
+abline(lm(Dreaming ~ BodyWt, data = data))
+
+# Transform BodyWt
+
+plot(log(BodyWt), Dreaming)
+abline(lm(Dreaming ~log(BodyWt), data = data))
+
+#Inspect BrainWt
+plot(BrainWt, Dreaming)
+abline(lm(Dreaming ~ BrainWt, data = data))
+
+# Transform BrainWt
+plot(log(BrainWt), Dreaming)
+abline(lm(Dreaming ~log(BrainWt), data = data))
+
+#Inspect LifeSpan
+plot(LifeSpan, Dreaming)
+abline(lm(Dreaming ~ LifeSpan, data = data))
+
+# Transform LifeSpan
+plot(log(LifeSpan), Dreaming)
+abline(lm(Dreaming ~log(LifeSpan), data = data))
+
+#Inspect Gestation
+plot(Gestation, Dreaming)
+abline(lm(Dreaming ~ Gestation, data = data))
+
+# Transform Gestation
+plot(log(Gestation), Dreaming)
+abline(lm(Dreaming ~log(Gestation), data = data))
+
+```
+
+All scatterplots improved after the transformation most dramatically in body and brain weight.  This validates the correlation coefficient because all scatterplots show a negative slope as represented by the abline.  
+
+
+
+## 2d.  Using boxplots, describe the relationship between Dreaming and the categorical independent variables Predation, Exposure, and Danger. Does Dreaming vary with the categorical variables?
+
+
+
+```{r q2d}
+
+boxplot(Dreaming ~ Predation, xlab = "Predation", ylab = "Dreamy Sleep")
+
+boxplot(Dreaming ~ Exposure, xlab = "Exposure", ylab = "Dreamy Sleep")
+
+boxplot(Dreaming ~ Danger, xlab = "Total Danger", ylab = "Dreamy Sleep")
+```
+
+
+
+### Predation
+
+predation index (1-5)
+1 = minimum (least likely to be preyed upon);
+
+5 = maximum (most likely to be preyed upon)
+
+
+The predation boxplot show that dreamy sleep varies with predation level.  There is a weak negative correlation between dreamy sleep and predation level.  
+
+### Exposure
+		
+sleep exposure index (1-5)
+1 = least exposed (e.g. animal sleeps in a well-protected den);
+
+5 = most exposed
+
+The exposure boxplot show that dreamy sleep varies with exposure level.  There is a weak negative correlation between dreamy sleep and exposure level.  
+
+### Danger
+		
+overall danger index (1-5) (based on the above two indices and other information)
+1 = least danger (from other animals);
+
+5 = most danger (from other animals)
+
+The danger boxplot show that dreamy sleep varies with danger level.  There is a moderate negative correlation between dreamy sleep and danger level.  
+
+
+## 2e.  Based on this section for exploratory analysis, is it reasonable to assume a linear regression model? Would you suggest that Dreaming varies with all or only some of the independent variables? Would you recommend using the categorical variables Predation, Exposure, and Danger  in the model? Why?
+
+I think it would be reasonable to assume a linear regression model using the Predation, Exposure and Danger categorical variables.  All of the variables seemed to have some level of negative correlation by looking at the boxplots with the danger variable having the strongest correlation.  Therefore, I think a linear regression model would fit this data and I would add them to the model.  
+
+
+## Question 3: Fitting the Linear Regression Model.
+
+
+```{r q3}
+
+model3 <- lm(NonDreaming ~. -Species -Dreaming -TotalSleep, data = data)
+
+summary(model3)
+
+plot(model3, cook.levels = c(4/42,0.5,1))
+plot(cooks.distance(model3), type ='h', col='red')
+```
+
+
+### 1. What are the model parameters and what are their estimates?
+
+The model parameters with their estimates are BodyWt (0.003332), BrainWt(-0.001294), LifeSpan(-0.001181), Gestation(-0.013804), Predation(1.414774), Exposure(0.224418), and Danger (-2.799115)
+
+### 2.  What is the equation for the regression line?
+$$y = 13.33 + 0.003332BodyWt + -0.001294BrainWt + -0.001181LifeSpan + -0.013804Gestation + 1.414774Predation + 0.224418Exposure + -2.799115Danger $$
+### 3. Which predicting variable(s) are significant at alpha = 0.05? What are their p-values?
+
+Gestation and Danger are the only predictors with p values < .05 at .0429 and .0351 respectively.
+
+### 4. Interpret the estimated value of the parameters, including the error term, corresponding to BodyWt and Predation in the context of the problem
+
+The BodyWt parameter is 0.003.  This represents the estimated expected change in nonDreaming sleep with one unit ofchange in BodyWt, holding all other values constant constant.  The standard error represents the average distance that the observed values fall from the regression line.  The standard error for BodyWt is .0056.  So our prediction, on average will be off by .0056.  
+
+
+The Predation parameter is 1.41.  This represents the estimated expected change in nonDreaming sleep with one unit of change in Predation, holding all other values constant.  The standard error represents the average distance that the observed values fall from the regression line.  The standard error for Predation is 1.03.  So our prediction, on average will be off by 1.03.  
+
+
+###  5. Check the assumptions of the model through plotting. Note potential outliers, if any.
+
+
+```{r q3.5_linearity}
+pairs(NonDreaming ~. -Species -Dreaming -TotalSleep, data = data) #or plot(data)
+
+
+```
+#### Linearity
+Focusing on the first row in the matrix plot above, we can see a weak negative correation with  nonDreaming and gestation, predation and danger.  All other variables asssociated with the model do not appear to show any linear relationship with nondreaming, the relationship does not hold for all variables.  
+
+
+#### Constant variance and uncorrelated errors
+The residual vs fitted values above shows the errors scattered around the zero line, which indicates that the constant variance and uncorrelated errors assumption holds.
+
+
+#### Normality
+The q-q plot of the standardized residuals shown above shows that the normality assumption holds with two outliers on the outer right tail.  An outlier is also noted on the lower left tail, but it falls within the normal range.
+
+#### Outliers
+The last plot, the cook's distance notes one outlier.
+
+
+
+
+
+
+
+
+
+
+
+
+
+## Question 3a: Change model3 to log transform the response variable, NonDreaming.
+
+```{r q3a}
+
+model3a <- lm(log(NonDreaming) ~. -Species -Dreaming -TotalSleep, data = data)
+
+summary(model3a)
+
+plot(model3a, cook.levels = c(4/42,0.5,1))
+plot(cooks.distance(model3a), type ='h', col='red')
+```
+
+
+### 1. What are the model parameters and what are their estimates?
+
+The model parameters with their estimates are BodyWt (0-0.0002651), BrainWt(0.0001303), LifeSpan(-0.0022691), Gestation(-0.0018214), Predation(0.1608420), Exposure(0.0224126), and Danger (-0.3207756)
+
+### 2.  What is the equation for the regression line?
+$$log(y) = 2.6679033 + -0.0002651BodyWt +  0.0001303BrainWt + -0.0022691LifeSpan + -0.0018214Gestation + 0.1608420Predation + 0.0224126Exposure + -0.3207756Danger $$
+### 3. Which predicting variable(s) are significant at alpha = 0.05? What are their p-values?
+
+Gestation and Danger are the only predictors with p values < .05 at 0.0265 and 0.0430 respectively.
+
+### 4. Interpret the estimated value of the parameters, including the error term, corresponding to BodyWt and Predation in the context of the problem
+
+The BodyWt parameter is 0.0001303.  As BodyWt increases by 1 unit, nondreaming increases by 0.0001303*100%, holding all other values constant constant.  The standard error represents the average distance that the observed values fall from the regression line.  The standard error for BodyWt is 0.0006661.  So our prediction, on average will be off by 0.0006661.  
+
+
+The Predation parameter is 0.1608420.  This represents the estimated expected change in nonDreaming sleep with one unit of change in Predation, holding all other values constant.  The standard error represents the average distance that the observed values fall from the regression line.  The standard error for Predation is 0.1229089.  So our prediction, on average will be off by 0.1229089.  
+
+
+###  5. Check the assumptions of the model through plotting. Note potential outliers, if any.
+
+
+```{r q3.5a_linearity}
+pairs(log(NonDreaming) ~. -Species -Dreaming -TotalSleep, data = data) #or plot(data)
+
+
+```
+
+#### Linearity
+Focusing on the first row in the matrix plot above we can see a weak negative correation with  nonDreaming and gestation, predation and danger.  All other variables asssociated with the model do not appear to show any linear relationship with nondreaming, the relationship does not hold for all variables.  
+
+#### Constant variance and uncorrelated errors
+The residual vs fitted values above shows the errors scattered around the zero line, which indicates that the constant variance and uncorrelated errors assumption holds.
+
+#### Normality
+The q-q plot of the standardized residuals shown above shows that the normality assumption holds with two outliers noted on the outer right tail and one on the lower left tail, but all appear to fall within the normal range.
+
+#### Outliers
+The last plot, the cook's distance notes one outlier.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+## Question 3b:      Change model3a to remove the log transform of NonDreaming, and add the log transformation of numeric response variables BrainWt, BodyWt, LifeSpan and Gestation
+
+
+```{r q3b}
+
+model3b <- lm(NonDreaming ~ log(BodyWt) +log(BrainWt) +log(LifeSpan) +log(Gestation) +Exposure +Predation +Danger, data = data)
+
+summary(model3b)
+
+plot(model3b, cook.levels = c(4/42,0.5,1))
+plot(cooks.distance(model3b), type ='h', col='red')
+```
+
+
+### 1. What are the model parameters and what are their estimates?
+
+The model parameters with their estimates are log(BodyWt) (-0.3917), log(BrainWt) (-0.5591), log(LifeSpan) (1.2991), log(Gestation) (-0.5083), Predation(1.6141), Exposure(0.5310), and Danger (-2.9313)
+
+### 2.  What is the equation for the regression line?
+$$y =11.4819 + log(BodyWt)(-0.3917) +  log(BrainWt) (-0.5591) + log(LifeSpan) (1.2991) + log(Gestation) (-0.5083)+ Predation(1.6141) + Exposure(0.5310) + Danger (-2.9313) $$
+### 3. Which predicting variable(s) are significant at alpha = 0.05? What are their p-values?
+
+ Danger is the only predictor with a p value < .05 at 0.016562.
+
+### 4. Interpret the estimated value of the parameters, including the error term, corresponding to BodyWt and Predation in the context of the problem
+
+The log(BodyWt) parameter is -0.3917.  As BodyWt increases by 1% nondreaming will decrease by -0.3917/100, holding all other values constant constant.  The standard error represents the average distance that the observed values fall from the regression line.  The standard error for log(BodyWt) is 0.4787.  So our prediction, on average will be off by 0.0006661.  
+
+
+The Predation parameter is 1.6141.  This represents the estimated expected change in nonDreaming sleep with one unit of change in Predation, holding all other values constant.  The standard error represents the average distance that the observed values fall from the regression line.  The standard error for Predation is 0.9812.  So our prediction, on average will be off by 0.9812.  
+
+
+###  5. Did model3b improve over model3a? Explain how you determined if the model improved or not.
+I would say that it did not improve for 2 reasons.  First the R^2^ value decreased, and second adding a transformation makes the model more difficult to explain and should gain some predictive power if used.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+## Question 3c:  Because the Danger variable is an interpolation of the Exposure and Predation variables, let’s keep Danger and remove the other two from the model using model3b as your baseline.
+
+```{r q3c}
+
+model3c <- lm(NonDreaming ~ log(BodyWt) +log(BrainWt) +log(LifeSpan) +log(Gestation) +Danger, data = data)
+
+ 
+
+summary(model3c)
+
+plot(model3c, cook.levels = c(4/42,0.5,1))
+plot(cooks.distance(model3c), type ='h', col='red')
+```
+
+
+### 1. What are the model parameters and what are their estimates?
+
+The model parameters with their estimates are log(BodyWt) (-0.4294), log(BrainWt) (-0.4437), log(LifeSpan) (1.0811), log(Gestation) (-0.6992), and Danger (-0.8723)
+
+### 2.  What is the equation for the regression line?
+$$y =13.0446 + log(BodyWt)(-0.4294) +  log(BrainWt)(-0.4437) + log(LifeSpan) (1.0811) + log(Gestation) (-0.6992)+  Danger (-0.8723) $$
+### 3. Which predicting variable(s) are significant at alpha = 0.05? What are their p-values?
+
+ Danger is the only predictor with a p value < .05 at 0.0109.
+
+### 4. Interpret the estimated value of the parameters, including the error term, corresponding to BodyWt and Predation in the context of the problem
+
+The log(BodyWt) parameter is -0.4294.  As BodyWt increases by 1% nondreaming will decrease by -0.4294/100, holding all other values constant constant.  The standard error represents the average distance that the observed values fall from the regression line.  The standard error for log(BodyWt) is 0.4663.  So our prediction, on average will be off by 0.0006661.  
+
+
+The Danger parameter is -0.8723.  This represents the estimated expected change in nonDreaming sleep with one unit of change in Danger, holding all other values constant.  The standard error represents the average distance that the observed values fall from the regression line.  The standard error for Predation is 0.3249 .  So our prediction, on average will be off by 0.3249.  
+
+
+###  5. Did model3c improve over model3b? Explain how you determined if the model improved or not.
+I would say that it is a toss up.  The model is simpler because it has less predictors, which I think is a good thing in general, but the adjusted R^@^ decreased, which is an indication that model3c may have less predictive power.  THere is also only one significant predictor in this model where the model3b had 2.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+## Question 3d:   For our final model, let's attempt to improve the data assumptions and model predictability by adding back the transformation of the response variable, NonDreaming, using model3c as your baseline.
+
+
+```{r q3d}
+
+finalmodel <- lm(log(NonDreaming) ~ log(BodyWt) + log(BrainWt) + log(LifeSpan) + log(Gestation) + Danger, data = data)
+
+ 
+
+summary(finalmodel)
+
+plot(finalmodel, cook.levels = c(4/42,0.5,1))
+plot(cooks.distance(finalmodel), type ='h', col='red')
+```
+
+
+### 1. What are the model parameters and what are their estimates?
+
+The model parameters with their estimates are log(BodyWt) (-0.11203), log(BrainWt) (0.03583), log(LifeSpan) (0.07153), log(Gestation) (-0.13977), and Danger (-0.11576)
+
+### 2.  What is the equation for the regression line?
+$$log(y) =2.78927 + log(BodyWt)(-0.11203) +  log(BrainWt)(0.03583) + log(LifeSpan) (0.07153) + log(Gestation) (-0.13977)+  Danger (-0.11576) $$
+### 3. Which predicting variable(s) are significant at alpha = 0.05? What are their p-values?
+
+ Danger is the only predictor with a p value < .05 at 0.00766.
+
+### 4. Interpret the estimated value of the parameters, including the error term, corresponding to BodyWt and Predation in the context of the problem
+
+The log(BodyWt) parameter is -0.11203.  As BodyWt increases by 1% nondreaming will decrease by -0.11203%, holding all other values constant constant.  The standard error represents the average distance that the observed values fall from the regression line.  The standard error for log(BodyWt) is 0.05881.  So our prediction, on average will be off by 0.05881.  
+
+
+The Danger parameter is -0.11576.  As Danger increases by 1 unit non-dreaming decreases by -0.11576*100%, holding all other values constant.  The standard error represents the average distance that the observed values fall from the regression line.  The standard error for Danger is 0.3249 .  So our prediction, on average will be off by 0.3249.  
+
+
+###  5. Did finalmodel improve over model3c? Explain how you determined if the model improved or not.
+I would say that the final model did improve over the model3c.  The model has 3 parameters significant at 0.1 and the R^2^ value is much greater at 0.64 vs 0.59.
+
+
+
+
+
+
+
+
+
+
+
+
+
+```{r data2}
+data2 = data[-11, ]
+
+```
+
+
+
+
+
+
+
+
+
+## Question 4: Fitting the Linear Regression Model.
+
+
+```{r q4}
+
+model4 <- lm(Dreaming ~. -Species -NonDreaming -TotalSleep, data = data2)
+
+summary(model4)
+
+plot(model4, cook.levels = c(4/42,0.5,1))
+plot(cooks.distance(model4), type ='h', col='red')
+```
+
+
+### 1. What are the model parameters and what are their estimates?
+
+The model parameters with their estimates are intercept 3.820083, BodyWt (0.003615), BrainWt(-0.001041), LifeSpan(0.011875), Gestation(-0.007219), Predation(0.859964), Exposure(0.295094), and Danger (-1.675645)
+
+### 2.  What is the equation for the regression line?
+$$y = 3.820083 + 0.003615BodyWt + -0.001041BrainWt + 0.011875LifeSpan + -0.007219Gestation + 0.859964Predation + 0.295094Exposure + -1.675645Danger $$
+### 3. Which predicting variable(s) are significant at alpha = 0.05? What are their p-values?
+
+Gestation Predation and Danger are the only predictors with p values < .05 at 0.00147, 0.00800   and 9.86e-05 respectively.
+
+### 4. Interpret the estimated value of the parameters, including the error term, corresponding to BodyWt and Predation in the context of the problem
+
+The BodyWt parameter is 0.003615.  This represents the estimated expected change in nonDreaming sleep with one unit ofchange in BodyWt, holding all other values constant constant.  The standard error represents the average distance that the observed values fall from the regression line.  The standard error for BodyWt is 0.001813.  So our prediction, on average will be off by 0.001813.  
+
+
+The Predation parameter is 0.859964.  This represents the estimated expected change in nonDreaming sleep with one unit of change in Predation, holding all other values constant.  The standard error represents the average distance that the observed values fall from the regression line.  The standard error for Predation is 0.304644.  So our prediction, on average will be off by 0.304644.  
+
+
+###  5. Check the assumptions of the model through plotting. Note potential outliers, if any.
+
+
+
+#### Constant variance and uncorrelated errors
+The residual vs fitted values above shows the errors scattered around the zero line, which indicates that the constant variance and uncorrelated errors assumption holds.
+
+
+#### Normality
+The q-q plot of the standardized residuals shown above shows that the normality assumption skews to the right, but I would say it still holds with 
+
+#### Outliers
+The last plot, the cook's distance notes one outlier.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+## Question 4a: Change model4 to log transform the response variable, NonDreaming.
+
+```{r q4a}
+
+model4a <- lm(log(Dreaming) ~. -Species -NonDreaming -TotalSleep, data = data2)
+
+summary(model4a)
+
+plot(model4a, cook.levels = c(4/42,0.5,1))
+plot(cooks.distance(model4a), type ='h', col='red')
+```
+
+
+### 1. What are the model parameters and what are their estimates?
+
+The model parameters with their estimates are intercept 1.4684458 BodyWt (0.0020701), BrainWt(-0.0005974), LifeSpan(0.0104864), Gestation(-0.0042079), Predation(0.3747033), Exposure(0.1015576), and Danger (0.7743707)
+
+### 2.  What is the equation for the regression line?
+$$log(y) = 1.4684458 + 0.0020701BodyWt +  -0.0005974BrainWt + 0.0104864LifeSpan + -0.0042079Gestation + 0.3747033Predation + 0.1015576Exposure + 0.7743707Danger $$
+### 3. Which predicting variable(s) are significant at alpha = 0.05? What are their p-values?
+
+BodyWt, gestation, Predation and Danger are all significant at the .05 level with p values at 0.00582, 9.57e-06, 0.00323, and 8.00e-06 respectively.
+
+### 4. Interpret the estimated value of the parameters, including the error term, corresponding to BodyWt and Predation in the context of the problem
+
+The BodyWt parameter is 0.0020701.  As BodyWt increases by 1 unit, nondreaming increases by 0.0020701*100%, holding all other values constant constant.  The standard error represents the average distance that the observed values fall from the regression line.  The standard error for BodyWt is 0.0007020.  So our prediction, on average will be off by 0.0007020.  
+
+
+The Predation parameter is 0.3747033.  This represents the estimated expected change in nonDreaming sleep with one unit of change in Predation, holding all other values constant.  The standard error represents the average distance that the observed values fall from the regression line.  The standard error for Predation is 0.1179789.  So our prediction, on average will be off by 0.1179789.  
+
+
+###  5. Check the assumptions of the model through plotting. Note potential outliers, if any.
+
+
+
+#### Constant variance and uncorrelated errors
+The residual vs fitted values above shows the errors scattered around the zero line, which indicates that the constant variance and uncorrelated errors assumption holds.
+
+#### Normality
+The q-q plot of the standardized residuals shown above shows that the normality assumption holds walthough it is right skewed.
+
+#### Outliers
+The last plot, the cook's distance notes one outlier.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+## Question 4b:      Change model4a to remove the log transform of NonDreaming, and add the log transformation of numeric response variables BrainWt, BodyWt, LifeSpan and Gestation
+
+
+```{r q4b}
+
+model4b <- lm(Dreaming ~ log(BodyWt) +log(BrainWt) +log(LifeSpan) +log(Gestation) +Exposure +Predation +Danger, data = data2)
+
+summary(model4b)
+
+plot(model4b, cook.levels = c(4/42,0.5,1))
+plot(cooks.distance(model4b), type ='h', col='red')
+```
+
+
+### 1. What are the model parameters and what are their estimates?
+
+The model parameters with their estimates are intercept 7.43127 log(BodyWt) (0.44017), log(BrainWt) (-0.35662), log(LifeSpan) (0.02462), log(Gestation) (-0.82406), Predation(0.59634), Exposure(0.26488), and Danger (-1.36005)
+
+### 2.  What is the equation for the regression line?
+$$y =7.43127 + log(BodyWt)(0.44017) +  log(BrainWt) (-0.35662) + log(LifeSpan) (0.02462) + log(Gestation) (-0.82406)+ Predation(0.59634) + Exposure(0.26488) + Danger (-1.36005) $$
+### 3. Which predicting variable(s) are significant at alpha = 0.05? What are their p-values?
+
+ log(BodyWt), log(Gestation), Predation and Danger are all significant at the .05 level with p-values of 0.002195,  0.000145, 0.035392, and 0.000180 respectively
+ 
+ 
+### 4. Interpret the estimated value of the parameters, including the error term, corresponding to BodyWt and Predation in the context of the problem
+
+The log(BodyWt) parameter is 0.44017.  As BodyWt increases by 1% nondreaming will increase by 0.44017/100, holding all other values constant constant.  The standard error represents the average distance that the observed values fall from the regression line.  The standard error for log(BodyWt) is 0.13251.  So our prediction, on average will be off by 0.13251.  
+
+
+The Predation parameter is 1.6141.  This represents the estimated expected change in nonDreaming sleep with one unit of change in Predation, holding all other values constant.  The standard error represents the average distance that the observed values fall from the regression line.  The standard error for Predation is 0.9812.  So our prediction, on average will be off by 0.9812.  
+
+
+###  5. Did model3b improve over model3a? Explain how you determined if the model improved or not.
+I would say that it did not improve because the R^2^ value decreased 0.7768 compared to 0.8066
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+## Question 4c:  Because the Danger variable is an interpolation of the Exposure and Predation variables, let’s keep Danger and remove the other two from the model using model3b as your baseline.
+
+```{r q4c}
+
+model4c <- lm(Dreaming ~ log(BodyWt) +log(BrainWt) +log(LifeSpan) +log(Gestation) +Danger, data = data2)
+
+ 
+
+summary(model4c)
+
+plot(model4c, cook.levels = c(4/42,0.5,1))
+plot(cooks.distance(model3c), type ='h', col='red')
+```
+
+
+### 1. What are the model parameters and what are their estimates?
+
+The model parameters with their estimates are intercept 7.94819, log(BodyWt) (0.43897), log(BrainWt) (-0.32370), log(LifeSpan) (-0.02089), log(Gestation) (-0.88941), and Danger (-0.55009)
+
+### 2.  What is the equation for the regression line?
+$$y = 7.94819 + log(BodyWt)(0.43897) +  log(BrainWt)(-0.32370) + log(LifeSpan) (-0.02089) + log(Gestation) (-0.88941)+  Danger (-0.55009) $$
+### 3. Which predicting variable(s) are significant at alpha = 0.05? What are their p-values?
+
+ log(BodyWt), log(LifeSpan), and Danger are all significant at the .05 level with p-values at 0.00263, 5.88e-05, 1.31e-06.
+
+### 4. Interpret the estimated value of the parameters, including the error term, corresponding to BodyWt and Predation in the context of the problem
+
+The log(BodyWt) parameter is 0.43897 .  As BodyWt increases by 1% nondreaming will decrease by 0.43897/100, holding all other values constant constant.  The standard error represents the average distance that the observed values fall from the regression line.  The standard error for log(BodyWt) is 0.13553.  So our prediction, on average will be off by 0.13553.  
+
+
+The Danger parameter is -0.55009.  This represents the estimated expected change in nonDreaming sleep with one unit of change in Danger, holding all other values constant.  The standard error represents the average distance that the observed values fall from the regression line.  The standard error for Danger is 0.09443.  So our prediction, on average will be off by 0.09443.  
+
+
+###  5. Did model3c improve over model3b? Explain how you determined if the model improved or not.
+No because the adjusted R^2^ decreased
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+## Question 4d:   For our final model, let's attempt to improve the data assumptions and model predictability by adding back the transformation of the response variable, NonDreaming, using model3c as your baseline.
+
+
+```{r q4d}
+
+finalmodel <- lm(log(Dreaming) ~ log(BodyWt) + log(BrainWt) + log(LifeSpan) + log(Gestation) + Danger, data = data2)
+
+ 
+
+summary(finalmodel)
+
+plot(finalmodel, cook.levels = c(4/42,0.5,1))
+plot(cooks.distance(finalmodel), type ='h', col='red')
+```
+
+
+### 1. What are the model parameters and what are their estimates?
+
+The model parameters with their estimates are intercept 3.10346, log(BodyWt) ( 0.14340 ), log(BrainWt) (-0.11064), log(LifeSpan) (0.05317), log(Gestation) (-0.41163), and Danger (-0.28973)
+
+### 2.  What is the equation for the regression line?
+$$log(y) =3.10346 + log(BodyWt)(0.14340) +  log(BrainWt)(-0.11064) + log(LifeSpan) (0.05317) + log(Gestation) (-0.41163)+  Danger (-0.28973) $$
+### 3. Which predicting variable(s) are significant at alpha = 0.05? What are their p-values?
+
+log(BodyWt), log(Gestation) and Danger all are significant at the .05 level with p-values of 0.040252, 0.000148, and 4.51e-07 respectively.
+
+### 4. Interpret the estimated value of the parameters, including the error term, corresponding to BodyWt and Predation in the context of the problem
+
+The log(BodyWt) parameter is 0.14340.  As BodyWt increases by 1% nondreaming will decrease by 0.14340%, holding all other values constant constant.  The standard error represents the average distance that the observed values fall from the regression line.  The standard error for log(BodyWt) is 0.06732.  So our prediction, on average will be off by 0.06732.  
+
+
+The Danger parameter is -0.28973.  As Danger increases by 1 unit non-dreaming decreases by -0.28973*100%, holding all other values constant.  The standard error represents the average distance that the observed values fall from the regression line.  The standard error for Danger is  0.04690  .  So our prediction, on average will be off by  0.04690 .  
+
+
+###  5. Did finalmodel improve over model4c? Explain how you determined if the model improved or not.
+The final model did not improve upon model 4c because the R^2^ value did not increase.
+
+
+
+
+
+
+
+
+
+
+
+
+## 5 Question 5 - Checking the Assumptions of the Model
+
+```{r q5}
+
+finalmodel <- lm(log(NonDreaming) ~ log(BodyWt) + log(BrainWt) + log(LifeSpan) + log(Gestation) + Danger, data = data)
+
+ 
+
+summary(finalmodel)
+
+plot(finalmodel, cook.levels = c(4/42,0.5,1))
+plot(cooks.distance(finalmodel), type ='h', col='red')
+```
+
+#### Constant variance and uncorrelated errors
+The residual vs fitted values above shows the errors scattered around the zero line, which indicates that the constant variance and uncorrelated errors assumption holds.
+
+#### Normality
+The q-q plot of the standardized residuals shown above shows that the normality assumption holds with some deviations in the tails.
+
+#### Outliers
+The last plot, the cook's distance notes multiple outliers.
+
+
+
+
+## 6 Question 6 - Checking the Assumptions of the Model
+
+```{r q6}
+
+finalmodel <- lm(log(Dreaming) ~ log(BodyWt) + log(BrainWt) + log(LifeSpan) + log(Gestation) + Danger, data = data2)
+
+ 
+
+summary(finalmodel)
+
+plot(finalmodel, cook.levels = c(4/42,0.5,1))
+plot(cooks.distance(finalmodel), type ='h', col='red')
+```
+
+
+
+#### Constant variance and uncorrelated errors
+The residual vs fitted values above shows the errors scattered around the zero line, which indicates that the constant variance and uncorrelated errors assumption holds.
+
+#### Normality
+The q-q plot of the standardized residuals shown above shows that the normality assumption holds with some deviations in the tails.
+
+#### Outliers
+The last plot, the cook's distance notes multiple outliers.
+
+
