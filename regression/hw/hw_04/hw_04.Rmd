@@ -1,0 +1,270 @@
+---
+title: "Homework 4"
+output:
+  rmarkdown::pdf_document:
+    fig_caption: yes        
+    includes:  
+      in_header: preamble-latex.tex
+---
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, fig.pos= "H")
+```
+
+
+# Q1
+
+## Q 1.1: Using boxplots explore the relationship between survived and the numerical independent variables: Age and Fare . Can you observe differences in distribution of the predictors between the 2 classes? Please explain and interpret.If you cannot determine visually please observe the mean/median of the predictors by the 2 classes: for example: summary(data[data$Survived==1,“Age”])
+
+```{r q1.1_age, message=FALSE}
+library(plyr)
+library(dplyr)
+library(ggplot2)
+
+data = read.csv('titanic.csv', header=TRUE, sep = ',')
+attach(data)
+survived = as.factor(Survived)
+# Age
+boxplot(Age ~ Survived, xlab = "Survived", ylab = "Age")
+summary(data[data$Survived==1,"Age"])
+summary(data[data$Survived==0,"Age"])
+#use Anova to determine differences in age survival
+aovAge = aov(Age ~ survived)
+TukeyHSD(aovAge)
+
+```
+
+
+
+```{r q1.1_fare, message=FALSE}
+# Fare
+boxplot(Fare ~ Survived, xlab = "Survived", ylab = "Fare")
+summary(data[data$Survived==1,"Fare"])
+summary(data[data$Survived==0,"Fare"])
+#use Anova to determine differences in fare survival
+aovFare = aov(Fare ~ survived)
+TukeyHSD(aovFare)
+```
+
+
+
+
+
+
+I did not see a clear difference between age and survuval rate or fare and survival rate with boxplots, or summarizing the data.  Although an increase in fare did have a higher survival rate it was not clear cut.  I performed an ANOVA to compare the means between survival and non-survival.  THe results showed that there was not a significant difference in the mean age (p>.05), but there was a difference in fare (p=0).
+
+
+
+## Q 1.2: Modify the Sib_sp and par_ch variables so that any passenger having 4 or more of each variable is coded “above_4”(Hint: use ifelse).Describe the relationship between Survived and the categorical independent variables Pclass, Sex, Sib_sp and Par_ch. Does the survival rate vary with the categorical variables? Please interpret. 
+
+
+
+
+```{r q1.2, message=FALSE}
+require(gridExtra)
+data$Par_ch = ifelse(data$Par_ch >4, "above_4", "below_4")
+data$Sib_sp = ifelse(data$Sib_sp  >4, "above_4", "below_4")
+
+
+
+#Pclass
+p1 = ggplot(ddply(data,.(Pclass),summarise, rr=100*sum(Survived)/length(Survived)), aes(x=Pclass,y=rr))+geom_bar(stat = "identity",width=0.5)+ labs(x="Passenger Class", y="% Response Rate")
+
+
+#Sex
+p2 = ggplot(ddply(data,.(Sex),summarise, rr=100*sum(Survived)/length(Survived)), aes(x=Sex,y=rr))+geom_bar(stat = "identity",width=0.5)+ labs(x="Sex", y="% Response Rate")
+
+
+#Sib_sp
+p3 = ggplot(ddply(data,.(Sib_sp),summarise, rr=100*sum(Survived)/length(Survived)), aes(x=Sib_sp,y=rr))+geom_bar(stat = "identity",width=0.5)+ labs(x="Sib_sp", y="% Response Rate")
+
+
+#Par_ch
+p4 = ggplot(ddply(data,.(Par_ch),summarise, rr=100*sum(Survived)/length(Survived)), aes(x=Par_ch,y=rr))+geom_bar(stat = "identity",width=0.5)+ labs(x="Par_ch", y="% Response Rate")
+
+grid.arrange(p1, p2, p3,p4, ncol=2)
+
+
+```
+
+
+Visual inspection of the categorical independent variables Pclass, Sex, Sib_sp and Par_ch indicates that survival rate does vary with the categorical variables.  Lower classes, males, higher sibling/spouse ratio, and higher # of parent/ children ratio all had lower survival rates compared to higher classes, females, low sibling/spouse ratios and low #of parent / children ratios.
+
+
+## Q 1.3: Based on your findings, you want to build a logistic regression model to predict the probabilities of passenger survival given the attributes. Briefly state the model and its assumptions
+
+The model is the logistic regression model of the form:
+
+$$ g(p) = \beta_0 + \beta_1x_1+...+\beta_px_p$$
+
+where $g(p)$ is a link function of the form:
+
+$$g(p) = log(\frac{p}{1-p})$$
+and p is the probability of success.
+
+Model assumptions are:
+
+1.  Linearity, the relationshp between the link function, g, and the predicted variable is a linear function.
+2.  Independence in the response data.
+3.  The link function is a logit function.
+
+
+# Q2
+
+## Q 2.1: Convert Pclass and Sib_sp to factor variables. Fit a logistic regression model on Survived as the response and Pclass, Sex, Age and Sib_sp as predictors. What are the model parameters and estimates?
+
+
+```{r q2.1, message=FALSE}
+Pclass = as.factor(Pclass)
+Sib_sp = as.factor(Sib_sp)
+
+model_q2 = glm(Survived ~ Pclass + Sex + Age + Sib_sp, family=binomial)
+
+
+summary(model_q2)
+```
+
+The above summary shows the model parameters (Pclass2, Pclass3, Sexmale, Age, Sib_sp1, Sib_sp2, Sib_sp3, Sib_sp4, Sib_sp5, Sib_sp8), with the estimates located in the first column "Estimate".
+
+
+
+## Q 2.2: Write down the equation for the logarithm of odds of survival given the predicting variables.
+
+
+$$
+\begin{aligned}
+g(p) = &4.195506 -1.356275Pclass2-2.492078 Pclass3 -2.712272Sexmale-0.045449Age +\\
+&0.079540Sibsp1 -0.204192Sibsp2 -2.351357Sibsp3-1.714913Sibsp4Sibsp4-16.028132Sibsp5 -16.504894Sibsp8
+\end{aligned}
+$$
+
+
+## Q 2.3: Interpret the coefficients of Pclass, Sex and Age
+
+In general a positive coefficient is associated with a higher survival rate, where a negative coefficient is associated with a lower survival rate.  
+More specifically, considering Pclass, Sex and Age, defining 1 as the highest class and 3 as the lowest class, survival rates decrease with lower classes because Pclass2 > Pclass3.  For males, the log odds of survival decrease by 2.7 or the odds of survival decrease by .067 versus females given that all other predicting variables are fixed.
+The log odds of survival devrease with age by -0.045449, or the odds of survival decrease by 0.96 for every one year increase in age given that all other predicting variables are fixed.
+
+# Q 3
+
+## Q 3.1: Find a 95% confidence interval for the parameters corresponding to all predictors plus the intercept.
+
+```{r q3.1, message=FALSE}
+exp(confint.default(model_q2))
+```
+
+
+
+## Q3.2 Which variables are significant at the significance level alpha=0.05? Give the p-value for any variable that is not significant.Please interpret.
+### Significant variables at alpha =0.05
+- (Intercept)   
+- Pclass2
+- Pclass3 
+- Sexmale      
+- Age          
+- Sib_sp3      
+- Sib_sp4        
+
+variables not significant at alpha = 0.05
+
+|variable|Pr(>abs(z))|
+|--|--|
+|Sib_sp1| 0.707338|    
+|Sib_sp2 |0.694586  | 
+|Sib_sp5 |0.986659   | 
+|Sib_sp8 |0.982462  |
+
+
+The above table shows values that are not significant at the alpha = 0.05 level, as shown in the table all p-values are greater than 0.05 indicating that you cannot reject the null hypothesis that the coefficient is equal to zero.
+
+
+# Q 4
+
+
+
+## Q 4.1: Aggregate the column “Survived” w.r.t the categorical predictors Pclass, Sex and Sib_sp. Fit a different Logistic Regression model with the number of successes as count of survived passengers as the new response vs Pclass, Sex and Sib_sp as predictors (follow the Obesity data example in the lecture). Perform a goodness of fit test for this new model? Does this model fit the data well?
+
+
+```{r q4.1, message=FALSE}
+newData = read.csv('titanic.csv', header=TRUE, sep = ',')
+newData.agg.n = aggregate(Survived~Pclass+Sex+Sib_sp,FUN=length, data=newData)
+newData.agg.y = aggregate(Survived~Pclass+Sex+Sib_sp,FUN=sum, data =newData)
+
+
+Pclass.agg = factor(newData.agg.n$Pclass)
+Sex.agg = factor(newData.agg.n$Sex)
+Sib_sp.agg = factor(newData.agg.n$Sib_sp)
+
+
+newData.agg = data.frame(Survived = newData.agg.y$Survived,
+                        Total = newData.agg.n$Survived,
+                        Sex = Sex.agg,
+                        Pclass=Pclass.agg,
+                        Sib_sp=Sib_sp.agg)
+attach(newData.agg)
+model.agg = glm(cbind(Survived,Total-Survived)~Sex+Pclass+Sib_sp,
+                data = newData.agg,family=binomial)
+
+summary(model.agg)
+
+## Test for GOF: Using deviance residuals
+deviances2 = residuals(model.agg,type="deviance")
+dev.tvalue = sum(deviances2^2)
+c(dev.tvalue, 1-pchisq(dev.tvalue,19))
+
+
+
+```
+
+
+Based on th low p-value above (p<0.05), we reject the null hypothesis of good fit and conclude that the model is not a good fit.
+
+
+
+
+
+## Q 4.2:Residual Analysis
+
+
+```{r q4.2, message=FALSE}
+
+## Residual Analysis
+res = resid(model.agg,type="deviance")
+par(mfrow=c(2,2))
+boxplot(res~Pclass,xlab="Pclass",ylab = "Std residuals",data = newData.agg)
+boxplot(res~Sex,xlab="Sex",ylab = "Std residuals",data = newData.agg)
+qqnorm(res, ylab="Std residuals")
+qqline(res,col="blue",lwd=2)
+hist(res,10,xlab="Std residuals", main="")
+
+```
+
+
+
+
+There is somewhat of a mixed result between the goodness of fit test using the p-value and the graphical residual analysis.  The above plots show that the model fits reaonably well.  The boxplots show some skew between the sexes with a larger spread of deviances among the females than maes, the classes seem to fit nicely.  The qq plot deviates on the left tail, but both the qq and histogram are reasonable.
+
+# Q5
+
+## Q5.1: Now consider the original model in Question 2. Predict the probability of survival of a Class 1 female passenger of age 20 with 1 sibling/spouse
+
+```{r q5.1, message=FALSE}
+
+new = data.frame(Pclass=1, Sex = "female", Age = 20.0, Sib_sp = 1)
+new$Pclass = factor(new$Pclass)
+new$Sib_sp = factor(new$Sib_sp)
+pred1 = predict(model_q2, new, type="response")
+pred1
+```
+## Q5.2: Predict the probability of survival of a Class 3 male passenger of age 21 with “above_4” siblings/spouses
+```{r q5.2, message=FALSE}
+
+new = data.frame(Pclass=3, Sex = "male", Age = 21.0, Sib_sp = 5)
+new$Pclass = factor(new$Pclass)
+new$Sib_sp = factor(new$Sib_sp)
+pred2 = predict(model_q2, new, type="response")
+pred2
+```
+
+## Q 5.3: Can you now infer which groups of people survived and which groups were left behind?
+
+The difference between the above predictions demonstrates that young, upperclass females with a  low siblings/spouse ratio had a very good chance at survival, and young lower classed men with a high siblings/spouse ratio had a very poor chance at survival.

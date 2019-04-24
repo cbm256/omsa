@@ -1,0 +1,69 @@
+###############################################################################
+##                                                                           ##
+##  IMPORTANT NOTE: All accuracies must be reported with two decimal places  ##
+##  in the range of [0.00, 1.00], e.g. 0.78 and not 78, 78.00, 78%, etc.     ##
+##                                                                           ##
+###############################################################################
+
+**********************************************
+Q 3.1
+
+Linear Regression - Training Accuracy: 0.64
+Linear Regression - Testing Accuracy: 0.64
+
+Random Forest - Training Accuracy: 1.00
+Random Forest - Testing Accuracy: 0.90
+
+SVM - Training Accuracy: 0.71
+SVM - Testing Accuracy: 0.71
+
+**********************************************
+
+Q 3.2 Hyperparameter Tuning
+
+Random Forest - n_estimators values tested (at least 3): 1, 100, 1000
+Random Forest - max_depth values tested (at least 3): 1, 100, 200
+
+Random Forest - Best combination of parameter values - n_estimators: 1000
+Random Forest - Best combination of parameter values - max_depth: 100
+
+Random Forest - Testing Accuracy before tuning (default parameters): 0.89
+Random Forest - Testing Accuracy after tuning: 0.93
+
+SVM - Kernel Values tested: 'rbf', 'linear'
+SVM - C values tested (at Least 3): .01, 100, 1000
+SVM - Best combination of parameter values - Kernel: 1000
+SVM - Best combination of parameter values - C: 'rbf'
+
+*********************************************
+
+Q 3.3
+
+SVM - Highest mean testing/cross-validated accuracy (best score): 0.86
+SVM - Mean train score: 0.88
+SVM Mean fit time: 14.92
+
+*********************************************
+
+Q 3.4 Feature Importance - WITH THE MODEL TRAINED IN Q 3.1
+
+Random Forest  - Most important feature (e.g. X5): X7
+Random Forest  - Least important feature (e.g. X1): X9
+
+*********************************************
+
+Q 3.5
+
+Best Classifier and why (in at most 50 words):
+Random forest because it had the highest accuracy and was much faster to train
+than SVM, which had the second best accuracy.
+
+*********************************************
+
+Q 3.6 Principal Component Analysis
+
+"PCA - Percentage of variance explained by each of the selected components (enter the entire array as [0.12, …, 0.012])": [5.72677802e-01, 4.27268657e-01, 3.11931021e-05, 9.07281291e-06, 7.03717546e-06, 1.50247477e-06, 1.39355904e-06, 7.89678691e-07, 6.75276888e-07, 6.14439646e-07]
+
+"PCA - Singular values corresponding to each of the selected components (enter the entire array as [0.09, …, 0.037])": [886657.01306756, 765862.8376967 ,   6543.79615045,   3529.16087888, 3108.13353107,   1436.16412213,   1383.13052468,   1041.17969123, 962.81183887, 918.41738083]
+
+*********************************************

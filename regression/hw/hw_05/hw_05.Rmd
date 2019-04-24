@@ -1,0 +1,336 @@
+---
+title: "Homework 5"
+output:
+  rmarkdown::pdf_document:
+    fig_caption: yes        
+    includes:  
+      in_header: preamble-latex.tex
+---
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, fig.pos= "H")
+```
+
+
+# Question 1a
+Begin by doing some exploratory analysis. Plot scatterplots to examine the relationships between all
+the explanatory variables and the response siri. Do you observe any relationship of siri with any of the
+predictors? Do you visually observe any outlier or high leverage point in any of the plots? Briefly note
+down your observations
+
+
+
+```{r 1a}
+library(tidyr)
+library(ggplot2)
+set.seed(123)
+data=faraway::fat
+data = data[-1]
+data = data [-2]
+smp_size <- floor(0.8 * nrow(data))
+train_ind <- sample(seq_len(nrow(data)), size = smp_size)
+
+train <- data[train_ind, ]
+test <- data[-train_ind, ]
+
+
+
+train %>%
+  gather(-siri, key = "var", value = "value") %>%
+  ggplot(aes(x = value, y = siri)) +
+    geom_point() +
+    facet_wrap(~ var, scales = "free") +
+    theme_bw()
+```
+
+
+The above plots show several strong positive relationships with the response variable siri.  Abdom, adipos, chest, biceps, hip, thigh, and weight all demonstrate a strong linear relationship with the response.  Other variables show a weaker relationship such as age, wrist, forearm and neck.  The height variable shows signs of an outlier, but the majority of the data appears consistent.
+
+# Question 1b
+
+Plot a correlation matrix of all variables vs all other variables:
+
+```{r 1b}
+library(corrplot)
+M <- cor(train)
+corrplot(M, method = "ellipse")
+
+```
+
+The above correlation matrix plot confirms the previous scatterplots. Abdom, adipos, chest, biceps, hip, thigh, and weight all demonstrate a strong linear relationship with the response.  
+
+# Question 1c
+
+ Collinearity leads to imprecise estimates of $\beta$. The signs of the coefficients can be the opposite of
+what intuition about the effect of the predictor might suggest. The standard errors are inflated so
+that t-tests may fail to reveal significant factors. The fit becomes very sensitive to measurement errors
+where small changes in y can lead to large changes in $\beta$.
+
+From the plot in 1b, do you find any multicollinearity among the predictors? Which set of predictors are
+correlated with each other?
+
+There appears to be multicollinearity among the predictors.  THe plot above shows weight having a higher correlation than the response with many of the predictors including adipos, neck, chest, hip, etc.  Adipos also demonstrates a high correlation with many predictors such as chest, abdom, and hip.
+
+# Question 1d
+Fit a linear regression model on your training data with siri as response vs all other variables as predictors.
+Use the vif() function in R to calculate VIFs of the predictors. Which variables have VIFs more than 10?
+Do you detect multicollinearity among the predictors?
+
+```{r 1d}
+library(regclass)
+m = lm(siri ~ ., data = train)
+
+VIF(m)
+```
+Many of the predictors have VIFs >10 including weight, adipos, chest, abdom, and hip.
+
+# Question 1e
+
+Use the eigen() function in R to calculate the eigenvalues of the covariance matrix. Then calculate the
+condition numbers associated with all eigenvalues relative to the largest eigenvalue. How many condition
+numbers are greater than 30? Do you detect multicollinearity?
+
+
+```{r 1e}
+(eigen(t(train)%*%as.matrix(train))$values^-1 * 9.997697e+07 )^.5
+
+
+```
+
+All of the condition numbers are greater than 30, except the largest eigenvalue.  This is more evidence of multicollinearity.
+
+# Question 2a
+Fit a linear regression model on your training data with siri as response vs all other variables as
+predictors (same as you did before). Which predictors are significant at the 99% confidence level?
+
+```{r 2a}
+model1 = lm(siri~ ., data=train)
+summary(model1)
+
+```
+
+The above summary shows that weight, adipos, free, chest, abdom, thigh, and forearm are all significant at the 99% level.
+
+# Question 2b
+
+Build a new model on the training data with only the predictors that are statistically significant at the
+99% confidence level. Perform an ANOVA test to compare this new model with the full model. Which
+one would you prefer? Explain
+
+```{r 2b}
+model2 = lm(siri ~ weight + adipos+ free+chest+abdom+ thigh+  forearm, data = train)
+summary(model2)
+
+anova(model1, model2)
+
+```
+
+The ANOVA test shows that there is a significant difference with the models at the 0.1 level.  However, I prefer the second model because it is simpler and still has a comparable R^2^ to the first model.
+
+# Question 2c
+
+Use the full model in 2a and predict() function in R to predict the response on the testing data.
+Calculate and report the RMSE (root mean squared error) of the response obtained on both the
+training and testing data.Why do you think there is a difference in the errors between the 2 datasets?
+
+```{r 2c}
+library(Metrics)
+rmse(train$siri,predict(model1, train[-1]))
+rmse(test$siri,predict(model1, test[-1]))
+```
+
+The training dataset had a lower RMSE (1.46) than the testing dataset (1.49), whcih makes sense because the model was fit to the training data so it is expected to be slightly overfit to this dataset.
+
+
+# Question 2d
+
+Perform a residual analysis to check for non-constant variance.State your observation. If you find any
+anomaly, perform a boxcox transformation on the response to remove any heteroscedasticity. What is
+your optimal choice of lambda? Fit a different model transforming the response by the optimal lambda
+and check for non-constant variance again. What do you observe?
+
+```{r 2d}
+
+par(mfrow=c(2,2))
+qqnorm(residuals(model1))
+qqline(residuals(model1))
+hist(residuals(model1))
+plot(residuals(model1), xlab = "Order", ylab = "Residuals")
+abline(0,0, lty=1,col="red")
+plot(fitted(model1),residuals(model1), xlab="Fitted Valus", ylab = "residuals")
+abline(0,0, lty=1,col="red")
+
+
+
+
+
+```
+
+
+The third and fourth plot above evaluates the assumptions for constant variance and independence.  There is not any pattern in the residuals, which indicates that the assumptions hold reasonably well.  Therefore I will not perform a boxcox transform.
+
+
+```{r 2e}
+library(MASS)
+b = boxcox(siri+.01~., data = train,lambda = seq(-.25,1, length = 10))
+
+lambda <- b$x # lambda values
+
+lik <- b$y # log likelihood values for SSE
+
+bc <- cbind(lambda, lik) # combine lambda and lik
+
+sorted_bc <- bc[order(-lik),] # values are sorted to identify the lambda value for the maximum log likelihood for obtaining minimum SSE
+
+head(sorted_bc, n = 10)
+```
+The value with the highest log likelihood is 1, ie no transformation so the original model holds.  
+
+
+
+# Question 3a
+
+Use the leaps function in the leaps package and perform an all subset regression on the training data
+by “minimizing” Mallow’s Cp statistics (method=“Cp”). Report the variables of the best model, its
+training and testing error
+
+
+```{r 3a}
+library(leaps)
+x = as.matrix(train[-1])
+y = as.matrix(train[1])
+out = leaps(x,y, method = "Cp")
+#cbind(as.matrix(out$which),out$Cp)
+best.model = which(out$Cp==min(out$Cp))
+#cbind(as.matrix(out$which), out$Cp)[best.model,]
+
+colnames(train[-1])[cbind(as.matrix(out$which), out$Cp)[best.model,]>0]
+
+te_fr = rmse(train$siri,predict(lm(formula = siri ~ weight+  adipos+ free+chest+  abdom+  thigh+   ankle+  biceps+ forearm+wrist, data = train), train[-1]))
+
+
+tst_fr = rmse(test$siri,predict(lm(formula = siri ~ weight+  adipos+ free+chest+  abdom+  thigh+   ankle+  biceps+ forearm+wrist, data = train), test[-1]))
+
+```
+
+The variables of the best model are:"weight"  "adipos"  "free"    "chest"   "abdom"   "thigh"   "ankle"   "biceps"  "forearm" "wrist"
+The training error was `r round(te_fr, 2)` and the test was `r round(tst_fr, 2)`.
+
+
+# Question 3b
+
+Use the step() function on the original model in 2a to perform a backward stepwise regression by
+minimizing AIC. What was the change in AIC from the original model? Report the variables of the
+final model, its training and testing error. (Keep trace=FALSE)
+
+```{r 3b}
+
+step(model1, direction = "backward")
+
+```
+
+The final AIC of the last model is 180.29 compared to the original AIC of 185.28.  The final model variables are: age + weight + height + adipos + free + chest + abdom + thigh + ankle + biceps + forearm.
+
+
+
+```{r 3b_cont}
+tr_error_bck = rmse(train$siri,predict(lm(formula = siri ~ age + weight + height + adipos + free + chest + 
+    abdom + thigh + ankle + biceps + forearm, data = train), train[-1]))
+
+
+tst_error_bck = rmse(test$siri,predict(lm(formula = siri ~ age + weight + height + adipos + free + chest + 
+    abdom + thigh + ankle + biceps + forearm, data = train), test[-1]))
+
+
+```
+
+The training rmse for the new model is `r round(tr_error_bck,2)` and the test is `r round(tst_error_bck,2)`.
+
+# Question 4a
+
+Use the glmnet() function in the library glmnet to build a Ridge Regression model by using the full model
+matrix of 2a as the training dataset.  Perform a 10 fold cross validation with the training data and report the
+optimal $\lambda$ (lambda.min). Use this $\lambda$ to build the final model and report its training and testing error
+
+Note: Remove the intercept column from the model matrix of the full model
+
+```{r 4a}
+library(glmnet)
+x = as.matrix(train[-1])
+y = as.matrix(train[1])
+lambdas = 10^seq(3, -5, by = -.1)
+
+model.cv=cv.glmnet(x,y,alpha=0,nfolds=10)
+opt_lambda = model.cv$lambda.min
+model3= glmnet(x,y, alpha = 0, lambda = opt_lambda )
+coef(model3,s = model.cv$lambda.min)
+summary(model3)
+
+tr_err_ridge = rmse(train$siri,predict(model3, as.matrix(train[-1])))
+
+tst_error_ridge = rmse(test$siri,predict(model3, as.matrix(test[-1])))
+
+
+```
+
+The training error is `r round(tr_err_ridge,2)` and the testing error is `r round(tst_error_ridge,2)` for the ridge regression with an optimal lambda of .73.
+
+# Question 4b
+
+Use the glmnet() function to build a lasso Regression model by using the full model matrix of 2a as the training dataset.Perform a 10 fold cross validation with the training data and report the optimal $\lambda$ (lambda.min).
+Use this $\lambda$ to build the final model. Report the final variables obtained (non 0 coefficients), the model
+training and testing error
+
+```{r 4b}
+model.cv=cv.glmnet(x,y,alpha=1,nfolds=10)
+opt_lambda = model.cv$lambda.min
+model4= glmnet(x,y, alpha = 1, lambda = opt_lambda )
+coef = coef(model4,s = model.cv$lambda.min)
+summary(model4)
+
+trn_error_lasso = rmse(train$siri,predict(model4, as.matrix(train[-1])))
+
+tst_error_lasso = rmse(test$siri,predict(model4, as.matrix(test[-1])))
+
+coef
+```
+
+The training data had a RMSE of `r round(trn_error_lasso,2)` and the test data had an rmse of `r round(tst_error_lasso,2)` with an optimal lambda of 0.13.
+The coefficients in the model are: weight, height, free, chest, abdom, thigh, knee, ankle, biceps, and forearm.
+
+
+
+# Question 4c
+
+Among all the variable selection models you built, which model has the lowest testing error? Which
+one is a low variance model? Which variable selection model would you prefer for predictive purposes?
+
+The forward and backward regression had the lowest test error at `r round(tst_fr,2)`, they also had the lowest number of covariates with 10 for forward and 11 for backward.  The lower rmse and lower number of covariates suggest that these models have lower variance.  For this data set I would choose forward regression as the best model because it has the lowest rmse and the fewest number of predictors.
+
+# Question 5
+
+```{r 5}
+library(pls)
+set.seed(123)
+pcrmod = pcr(siri ~ ., data=train, validation="CV", ncomp=15)
+pcrCV = RMSEP(pcrmod, estimate="CV")
+plot(pcrCV,main="")
+
+
+
+```
+
+It looks like 6 PC's has the lowest RMSE.  
+
+```{r 5_cont}
+
+tr_err_p = rmse(train$siri,predict(pcrmod,train,ncomp = 6))
+tst_err_p = rmse(test$siri,predict(pcrmod,test,ncomp = 6))
+
+
+```
+
+The training error was `r round(tr_err_p,2)` and the testing error was `r round(tst_err_p,2)`.  This has an rmse close to the lowest previous model.  I still would choose the previous step regression models because it has the added benefit of being able to use the model as an explanation of the system as a whole.  If predictive power was the number one priority, however, I would consider this model also.
+
+
+
+
