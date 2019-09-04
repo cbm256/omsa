@@ -106,3 +106,4 @@ venv.bak/
 *.tsv
 *.ova
 *.csv
+books/
