@@ -1,0 +1,20 @@
+1.  I decided to keep my k-medoids implementation simple.  The algorithm follows the steps below.
+
+	steps:
+		1.  Find centroids using k ++ find the closest pixels to these centroids and initialize with these centroids.
+		2.  Assign all points to the closest cluster using assigned distance measure
+		3.  Calculate the initial total cost which is the sum of all distances.
+		5.  Use a random grid search of all possible centroid combinations for N runs.
+		6.  Update best cluster centers if new cost < previous cost else keep current cluster centers as best.
+		7.  Generate classes from best set of cluster centers  
+
+2. Attach picture
+3.  The picture became less compressed (looked closer to the original) the higher the k value.
+I ran the algorithm as a random grid search for N runs so time to calculate distances between centroids increased linearly as a function of k for k-medoids.  K-means largely
+followed a linear trend as well, but there were instances when a larger value of k converged faster.  This is due to the randomness in the initialization.  
+4.  I implemented the k-medoids algorithm with initial centroids equal to each other.  I use random grid search in my implementation so there is little to no effect in the final outcome.
+5.  Although I do not see a large difference between the two algorithms in terms of image quality, I do think k-means performs better overall.  K-means is also much faster because it meets the
+convergence criteria where k-medoids has a predetermined amount of runs to perform random grid search.
+
+
+
