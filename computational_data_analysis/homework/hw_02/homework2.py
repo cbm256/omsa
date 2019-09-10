@@ -18,7 +18,7 @@ from my_sol_kmedoids import my_kmedoids
 import timeit
 
 
-def score(image_name, K, ord=None):
+def score(image_name, K, ord=None, initial_centroids=pixels[:5]):
     image = plt.imread(image_name)
     rows = image.shape[0]
     cols = image.shape[1]
@@ -61,8 +61,8 @@ def score(image_name, K, ord=None):
     return None
 
 
-# score("soccer.jfif", 15, ord=None)
-for ord in ["fro", "nuc", np.inf]:
-    print("Using ord: {}\n".format(str(ord)))
-    score("soccer.jfif", 3, ord=ord)
+score("soccer.jfif", 15, ord=None)
+# for ord in ["fro", "nuc", np.inf]:
+#     print("Using ord: {}\n".format(str(ord)))
+#     score("soccer.jfif", 5, ord=ord)
 

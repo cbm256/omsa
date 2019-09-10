@@ -1,4 +1,5 @@
 import timeit
+import pandas as pd
 
 s = """
 from homework2 import score
