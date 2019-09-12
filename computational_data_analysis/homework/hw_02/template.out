@@ -1,0 +1,7 @@
+\BOOKMARK [1][-]{section.1}{Image Compression Using Clustering}{}% 1
+\BOOKMARK [2][-]{subsubsection.1.0.1}{General K-medoids implementation}{section.1}% 2
+\BOOKMARK [3][-]{subsubsection.1.0.2}{Comparison of Different K values and Distance Measures}{subsubsection.1.0.1}% 3
+\BOOKMARK [3][-]{subsubsection.1.0.3}{Comparison with Different Initial Centroids}{subsubsection.1.0.1}% 4
+\BOOKMARK [3][-]{subsubsection.1.0.4}{Comparison of K-means and K-medoids}{subsubsection.1.0.1}% 5
+\BOOKMARK [1][-]{section.2}{Spectral Clustering}{}% 6
+\BOOKMARK [2][-]{subsubsection.2.0.1}{Show that there are m eigenvectors of L corresponding to eigenvalue zero, and the indicator vectors of these components IA1 , . . . , IAm span the zero eigenspace.}{section.2}% 7

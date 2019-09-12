@@ -15,7 +15,6 @@ import numpy as np
 from my_sol_kmeans import my_kmeans
 from my_sol_kmedoids import my_kmedoids
 
-import timeit
 
 
 def score(image_name, K, ord=None, initial_centroids=pixels[:5]):
