@@ -1,0 +1,8 @@
+\BOOKMARK [1][-]{section.1}{K-means}{}% 1
+\BOOKMARK [2][-]{subsection.1.1}{Euclidean Distance}{section.1}% 2
+\BOOKMARK [2][-]{subsection.1.2}{Manhattan Distance}{section.1}% 3
+\BOOKMARK [1][-]{section.2}{Spectral Clustering}{}% 4
+\BOOKMARK [1][-]{section.3}{Principal Component Analysis}{}% 5
+\BOOKMARK [2][-]{subsection.3.1}{Find the first principal direction.}{section.3}% 6
+\BOOKMARK [2][-]{subsection.3.2}{When we reduce the dimensionality from 3 to 1 based on the principal direction you found above, what is the reconstruction error in terms of variance?}{section.3}% 7
+\BOOKMARK [2][-]{subsection.3.3}{You are given the following 2-D datasets, approximately draw the first and second principal directional on each plot.}{section.3}% 8
