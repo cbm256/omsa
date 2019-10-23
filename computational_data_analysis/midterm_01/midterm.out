@@ -1,8 +1,17 @@
 \BOOKMARK [1][-]{section.1}{K-means}{}% 1
-\BOOKMARK [2][-]{subsection.1.1}{Euclidean Distance}{section.1}% 2
-\BOOKMARK [2][-]{subsection.1.2}{Manhattan Distance}{section.1}% 3
-\BOOKMARK [1][-]{section.2}{Spectral Clustering}{}% 4
-\BOOKMARK [1][-]{section.3}{Principal Component Analysis}{}% 5
-\BOOKMARK [2][-]{subsection.3.1}{Find the first principal direction.}{section.3}% 6
-\BOOKMARK [2][-]{subsection.3.2}{When we reduce the dimensionality from 3 to 1 based on the principal direction you found above, what is the reconstruction error in terms of variance?}{section.3}% 7
-\BOOKMARK [2][-]{subsection.3.3}{You are given the following 2-D datasets, approximately draw the first and second principal directional on each plot.}{section.3}% 8
+\BOOKMARK [2][-]{subsection.1.1}{Steps for K-means}{section.1}% 2
+\BOOKMARK [2][-]{subsection.1.2}{Euclidean Distance}{section.1}% 3
+\BOOKMARK [2][-]{subsection.1.3}{Manhattan Distance}{section.1}% 4
+\BOOKMARK [1][-]{section.2}{Spectral Clustering}{}% 5
+\BOOKMARK [1][-]{section.3}{Principal Component Analysis}{}% 6
+\BOOKMARK [2][-]{subsection.3.1}{Find the first principal direction.}{section.3}% 7
+\BOOKMARK [2][-]{subsection.3.2}{When we reduce the dimensionality from 3 to 1 based on the principal direction you found above, what is the reconstruction error in terms of variance?}{section.3}% 8
+\BOOKMARK [2][-]{subsection.3.3}{You are given the following 2-D datasets, approximately draw the first and second principal directional on each plot.}{section.3}% 9
+\BOOKMARK [1][-]{section.4}{Eigenfaces}{}% 10
+\BOOKMARK [2][-]{subsection.4.1}{Produce eigenfaces for given dataset}{section.4}% 11
+\BOOKMARK [3][-]{subsubsection.4.1.1}{Plot the top 6 eigenfaces for each subject}{subsection.4.1}% 12
+\BOOKMARK [3][-]{subsubsection.4.1.2}{What is the interpretation of the top 6 eigenfaces?}{subsection.4.1}% 13
+\BOOKMARK [2][-]{subsection.4.2}{Face Recognition}{section.4}% 14
+\BOOKMARK [1][-]{section.5}{ISOMAP}{}% 15
+\BOOKMARK [2][-]{subsection.5.1}{Visualize the similarity graph \(e.g., plot the adjacency matrix where weights are shown using intensity\).}{section.5}% 16
+\BOOKMARK [2][-]{subsection.5.2}{Implement the ISOMAP algorithm and apply it to this graph to obtain a d = 2-dimensional embedding. Present a plot of this embedding. Find three points that are close to each other and show what they look like. Do you see any similarity among them?}{section.5}% 17
