@@ -6,7 +6,8 @@
 \usepackage{graphicx}
 \usepackage{url}
 \usepackage{listings}
-
+\usepackage{caption}
+\usepackage{subcaption}
 
 \begin{document}
 
@@ -108,9 +109,7 @@ In lectures we learn three different classifiers. This question is to implement 
 
 \textbf{Part One (Divorce classification/prediction).} (30 points) 
 
-This dataset is about participants who completed the personal information form and a divorce predictors scale. 
 
-The data is a modified version of the publicly available at \url{https://archive.ics.uci.edu/ml/datasets/Divorce+Predictors+data+set} (by injecting noise so you will not replicate the results on uci website). There are 170 participants and 54 attributes (or predictor variables) that are all real-valued. The dataset \textbf{q3.csv}. The last column of the CSV file is label $y$ (1 means ``divorce'', 0 means ``no divorce''). Each column is for one feature (predictor variable), and each row is a sample (participant). A detailed explanation for each feature (predictor variable) can be found at the website link above. Our goal is to build a classifier using training data, such that given a test sample, we can classify (or essentially predict) whether its label is 0 (``no divorce'') or 1 (``divorce''). 
 
 
 
@@ -119,75 +118,82 @@ Build three classifiers using (Naive Bayes, Logistic Regression, KNN). Use the f
 \begin{enumerate}
 
 	\item Report testing accuracy for each of the three classifiers.  Comment on their performance: which performs the best and make a guess why they perform the best in this setting. 
+	
+Table 1: Accuracy comparison between 3 different classification algorithms.
+ 
+\begin{table}[h!]
+\centering
+\begin{tabular}{|| c | c | c | c ||} 
+ \hline
+  & Naive Bayes & Logistic Regression & KNN  \\ [0.5ex] 
+ \hline\hline
+ Accuracy & .971 & .971 & .971 \\ 
+ \hline
+\end{tabular}
+\label{table:1}
+\end{table}
+
+All classification algorithms performed equally against the divorce dataset with an accuracy of 97.1\% seen in table 1 above.  I am surprised that logistic regression and naive bayes performed equally because of the different modeling assumptions associated with each.  Although both algorithms are paramtetric models Naive Bayes assumes all features to be independent of each other, where logistic regression does not.  I would expect the features of divorce to be correlated and the two algorithms to perform differently.
+
+KNN is a non-parametric model that labels any new data by selecting k nearest neighbors and labeling it with the majority label of those neighbors.  Looking at the decision boundary the data seems to be easily separated with very few datapoints crossing the decision boundary.  This seems like a well suited task for KNN.
+
+
+
 	\item Use the first two features to train three new classifiers. Plot the data points and decision boundary of each classifier. Comment on the difference between the decision boundary for the three classifiers. Please clearly represent the data points with different labels using different colors.
 \end{enumerate}
 
-\textbf{Part Two (Handwritten digits classification).} (20 points) Repeat the above using the \textbf{MNIST Data} in our \textbf{Homework 3}. Here, give ``digit'' 6 label $y = 1$, and give ``digit'' 2 label $y = 0$. All the pixels in each image will be the feature (predictor variables) for that sample (i.e., image). Our goal is to build classifier to such that given a new test sample, we can tell is it a 2 or a 6. Using the first $80\%$ of the samples for training and remaining $20\%$ for testing. Report the classification accuracy on testing data, for each of the three classifiers. Comment on their performance: which performs the best and make a guess why they perform the best in this setting. 
 
-\item {\bf Deriving M-step in EM for GMM.} (Bonus question: 10 points)
+\begin{figure}[h]
+  \begin{subfigure}[b]{0.3\textwidth}
+    \includegraphics[width=\textwidth]{nb.png}
+    \caption{Naive Bayes.}
+    \label{fig:f1}
+  \end{subfigure}
+  \hfill
+  \begin{subfigure}[b]{0.3\textwidth}
+    \includegraphics[width=\textwidth]{lr.png}
+    \caption{Logistic Regression.}
+    \label{fig:f2}
+  \end{subfigure}
+  \hfill
+  \begin{subfigure}[b]{0.3\textwidth}
+    \includegraphics[width=\textwidth]{knn.png}
+    \caption{KNN.}
+    \label{fig:f3}
+  \end{subfigure}
+  \caption{Decision Boundaries for 3 classification algorithms.}
+\end{figure}
 
-Consider the $Q$ function in EM for GMM:
-\[
-Q(\theta|\theta_k) = \sum_{i=1}^n \sum_{c=1}^C p_{i, c} \log \pi_c
-+ \sum_{i=1}^n \sum_{c=1}^C p_{i, c} \log \phi(x_i|\mu_c, \Sigma_c)
-\] 
-where $\theta= \{\pi_c, \mu_c, \Sigma_c\}_{c=1, \ldots, C}$, and  $p_{i,c} \propto \pi_c^{(k)} \phi(x_i|\mu_c^{(k)}, \Sigma_c^{(k)})$, $i = 1, \ldots, n$, $c = 1, \ldots, C$ depend on the parameters from the previous iteration. Here $\phi(x|\mu, \Sigma)$ denotes the pdf of a multi-variate Gaussian with mean vector $\mu$ and covariance matrix $\Sigma$. 
 
-Solve $\pi_c$, $\mu_c$ and $\Sigma_c$ that maximize the $Q(\theta|\theta_k)$ function.
-In other words, we want to find
-\begin{equation*}
-\begin{split}
-\theta_{k+1} := \arg\max_{\theta} &\quad Q(\theta|\theta_k)\\
-\mbox{subject to} &\quad \sum_{c = 1}^C \pi_{c} = 1.
-\end{split}
-\end{equation*}
-Show that the solution $\theta_{k+1}$ is given by the following expression
-\[
-\pi_c^{(k+1)} = \frac{\sum_{i=1}^n p_{i,c}}{n}
-\]
-\[
-\mu_c^{(k+1)}  = \frac{\sum_{i=1}^n p_{i,c} x_i}{\sum_{i=1}^c p_{i,c}}
-\]
-\[
-\Sigma_c^{(k+1)} = \frac{\sum_{i=1}^n p_{i,c} (x_i - \mu_c^{(k)})(x_i - \mu_c^{(k)})^T}{\sum_{i=1}^n p_{i,c}}
-\]
-(Hint: Consider the Lagrangian function for solving this constrained optimization problem. You only need to introduce one Lagrangian multiplier because you only have one constraint. Then solve it from there.)
+\textbf{Part Two (Handwritten digits classification).} (20 points) Repeat the above using the \textbf{MNIST Data} in our \textbf{Homework 3}. Here, give ``digit'' 6 label $y = 1$, and give ``digit'' 2 label $y = 0$. All the pixels in each image will be the feature (predictor variables) for that sample (i.e., image). Our goal is to build classifier to such that given a new test sample, we can tell is it a 2 or a 6. Using the first $80\%$ of the samples for training and remaining $20\%$ for testing. Report the classification accuracy on testing data, for each of the three classifiers. Comment on their performance: which performs the best and make a guess why they perform the best in this setting.
 
 
 
-\item {\bf Naive Bayes for spam filtering}. (Bonus question: 20 points) 
+\begin{table}[h!]
+\centering
+\begin{tabular}{|| c | c | c | c ||} 
+ \hline
+  & Naive Bayes & Logistic Regression & KNN  \\ [0.5ex] 
+ \hline\hline
+ Accuracy & .807 & .982 & .997 \\ 
+ \hline
+\end{tabular}
+\label{table:2}
+\end{table}
 
-In this problem we will use the Naive Bayes algorithm to fit a spam filter by hand. This will enhance your understanding to Bayes classifier and build intuition. 
 
-Spam filters are used in all email services to classify received emails as ``Spam'' or ``Not Spam''. A simple approach involves maintaining a vocabulary of words that commonly occur in ``Spam'' emails and classifying an email as ``Spam'' if the number of words from the dictionary that are present in the email is over a certain threshold.
-We are given the vocabulary consists of 15 words \[V=\{\textsf{secret, offer, low, price, valued, customer, today, dollar, million, sports, is, for, play, healthy, pizza}\}.\] We will use $V_i$ to represent the $i$th word in $V$. As our training dataset, we are also given 3 example spam messages,
-\begin{itemize}
-\item \textsf{million dollar offer}
-\item \textsf{secret offer today}
-\item \textsf{secret is secret}
-\end{itemize}
-and 4 example non-spam messages
-\begin{itemize}
-\item \textsf{low price for valued customer}
-\item \textsf{play secret sports today}
-\item \textsf{sports is healthy}
-\item \textsf{low price pizza}
-\end{itemize}
+Naive Bayes performed the worst of the three algorithms at 80.7\% accuracy.  Making the assumption that all features are independent of each other on such a large feature space as images often are was probably what led to such a poor performance.  
 
-Recall that the Naive Bayes classifier assumes the probability of an input $x = [x_1, x_2, \ldots, x_n]^T$ depends on its class $y$. In our case the input vector $x$ corresponding to each message has length $n = 15$ equal to the number of words in the vocabulary $V$, where each entry $x_i$ is equal to the number of times word $V_i$ occurs in $x$.
+Logistic Regression did much better with 98.2\% accuracy.  The 2 and the 6 are very different looking digits which allows logistic regression to make a linear separation of the 2.
 
-\begin{enumerate}
-\item Calculate $\mathbb P(y = 0)$ and $\mathbb P(y = 1)$ from the training data, where $y = 0$ corresponds to spam messages, and $y = 1$ corresponds to non-spam messages.
-\item List the feature vector $x$ for each spam and non-spam message.
-\item In the Naive Bayes model, the likelihood of a sentence with feature vector $x$ given a class $c$ is
-\[
-\mathbb P (x|y = c) = \prod_{k=1}^n \theta_{c, k}^{x_k}
-\]
-where $\theta_{c,k} \in (0, 1)$ is the weight of word $k$ in class $c$, which satisfies $\sum_{k=1}^n \theta_{c, k} = 1$, $\forall c$. Calculate the maximum likelihood estimates of $\theta_{0,1}$, $\theta_{0,7}$, $\theta_{1,1}$, $\theta_{1,15}$ by maximizing $\mathbb P (x|y = c)$ with respect to $\theta_{c, k}$ and given data. (Hint: Consider the Lagrangian function for solving this constrained optimization problem. You only need to introduce one Lagrangian multiplier because you only have one constraint. Consider log-likelihood (i.e., taking log of the cost function). Then solve it from there.)
-\item Given a new message ``\textsf{today is secret}'', decide whether it is spam or not spam, based on the Naive
-Bayes classifier, learned from the above data.
+KNN outperformed Naive Bayes and logisitic regression.  For the same reason that logistic regression did well, the 2 and 6 are quite different looking values from each other and using distance as a metric is probably a good one in this instance.  I would not expect this performance if the data consisted of 2 similar looking digits such as 1 and 7 for example. 
 
-\end{enumerate}
+
+
+
+
+
+
 
 
 \end{enumerate}
