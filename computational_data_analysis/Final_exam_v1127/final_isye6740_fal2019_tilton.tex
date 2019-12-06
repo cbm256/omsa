@@ -520,13 +520,35 @@ Using slides from ``Classification I'', assuming $P(y=1) = P(y=-1)$ (i.e., the p
 The multivariate normal distribution is as follows:
 
 $$
-p(x) = \frac{1}{(2\pi)^{d/2}|\Sigma|^{1/2}}\exp[-\frac{1}{2}(x-\mu)^t\Sigma^{-1}(x-\mu)]
+P(x|y) = N(x|\mu_y,\Sigma_y) = \frac{1}{(2\pi)^{d}|\Sigma|^{1/2}}\exp[-\frac{1}{2}(x-\mu)^T\Sigma^{-1}(x-\mu)]
 $$
 
-A quadratic form of the Bayes decision boundary would be the following:
+The posterior probability of a given distribution $i$ using Bayes rule is:
 
 $$
-q_i(x) = x^t(-\frac{1}{2}\Sigma_{i}^{-1})x+(\Sigma_{i}^{-1}\mu_i)^tx-\frac{1}{2}\mu_i^t\Sigma_{i}^{-1}\mu_i-\frac{1}{2}\ln{|\Sigma_i|}+\ln{P(y_i)}
+q(x) = P(y|x) = \frac{P(x|y)P(y)}{P(x)} = \frac{N(x|\mu_y,\Sigma_y)P(y)}{\sum_yP(y)N(x|\mu_y,\Sigma_y)}
+$$
+
+
+
+If you have a binary classification with 2 multivariate Probability Distributions $i$ and $j$ then the Bayes decision occurs when $i =j$.
+
+A quadratic form of this boundary in the canonical form $x^TAx+b^Tx+c=0$ can be obtained by solving for $q(x)_i - q(x)_j$
+
+Note: $\sum_yP(y)N(x|\mu_y,\Sigma_y)$ is a normalizer and will be ignored in the below derivation.
+
+
+$$
+\frac{1}{(2\pi)^{d}|\Sigma_i|^{1/2}}\exp[-\frac{1}{2}(x-\mu_i)^T\Sigma^{-1}_i(x-\mu_i)]\pi_i 
+= 
+\frac{1}{(2\pi)^{d}|\Sigma_j|^{1/2}}\exp[-\frac{1}{2}(x-\mu_j)^T\Sigma^{-1}_j(x-\mu_j)]\pi_j
+$$
+Where $\pi = P(y)$, the prior.
+
+Taking the natural log of both sides, multiplying by 2 and bringing the right side over to the left we have:
+
+$$
+x^T(\Sigma_i-\Sigma_j)^{-1}x+2(\Sigma_j^{-1}\mu_j-\Sigma^{-1}_i\mu_i)^Tx+(\mu_i^T\Sigma_i^{-1}\mu_i-\mu_j^T\Sigma_j^{-1}\mu_j) + \ln\frac{|\Sigma_i|}{|\Sigma_j|} + 2\ln\frac{\pi_j}{\pi_i} = 0
 $$
 \vspace{.15in}
 
