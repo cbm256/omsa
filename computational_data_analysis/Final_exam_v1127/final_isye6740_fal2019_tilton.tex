@@ -5,7 +5,8 @@
 \usepackage{array}
 \usepackage{fancyhdr}
 \usepackage{graphicx}
-
+\usepackage{booktabs}
+\usepackage{wasysym}
 % Insert your course information here %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \newcommand{\titlehd}{Computational Data Analysis}
@@ -295,9 +296,9 @@ The two methods above both use K-means as the end method to assign points into g
 \vspace{.15in}
 Spectral clustering and PCA are two methods that use eigendecomposition to find patterns within a dataset.  The difference between the two are how eigendecomposition is used within the algoritms.  
 
-PCA uses eigendecomposition for dimensionality reduction.  The purpose is to preserve as much information of the underlying data as possible but reducing the dimensions to be able to visualize the data, apply simpler models to the data, or speed up a subsequent learning task.  After eigendecomposition, the eigenvectors that correspond to the K largest eigenvalues are chosen to represent the data.  The eigenvalues represent the variation in the data and variation can be seen as a proxy for information within the data.  It is therefore possible to drastically reduce the dimensions within while preserving the majority of the underlying information.  
+PCA uses eigendecomposition for dimensionality reduction.  The purpose is to preserve as much information of the underlying data as possible but reducing the dimensions to be able to visualize the data, apply simpler models to the data, or speed up a subsequent learning task.  After eigendecomposition on the covariance matrix, the eigenvectors that correspond to the K largest eigenvalues are chosen to represent the data.  The eigenvalues represent the variation in the data and variation can be seen as a proxy for information within the data.  It is therefore possible to drastically reduce the dimensions within while preserving the majority of the underlying information.  
 
-Spectral clustering uses eigendecomposition to determine the connectedness of a graph.  It does this by  first finding the graph Laplacian of the data and then performing eigendecomposition on the transformed data.  
+Spectral clustering uses eigendecomposition to determine the connectedness of a graph.  It does this by  performing eigendecomposition on the graph Laplacian of the data or any other similarity matrix (not strictly a covariance matrix as in PCA) and then performing eigendecomposition on the transformed data.  
 
 Both spectral clustering and PCA use eigendecomposition.  Data that has been transformed through PCA can be used for clustering, although the main goal is dimensionality reduction where spectral clustering is obviously used for clustering.
 
@@ -337,6 +338,8 @@ Methods that can be used for classification are:
 
 \end{itemize}
 Kernel density estimation and histograms are not necessarily classification.  They can be used to determine the likelihood of a particular data point and are often used as a building block for more sophisticated classification algorithms.
+
+K-means is not a clustering algorithm and should not be used as a classification algorithm if possible.  One approach I read about is using k-means to cluster the data into various classes then use a more robust classification algorithm such as SVM to classify new data based on these results.
 \vspace{.15in}
 
 
@@ -347,7 +350,7 @@ Kernel density estimation and histograms are not necessarily classification.  Th
 
 Going from left to right the decision boundaries correspond to SVM, decision tree, and random forest.
 
-The first image is obviously SVM because the decision boundaries are linear and SVM is a linear classifier.  The next two decision boundaries are similar, but the last image on the very right performed better ($.85 > .78$) and looks like it has a lot more noise assoicated with it.  That extra noise and layers is the result of the randomness in the random forest, which generally performs better than the single decision tree.
+The first image is obviously SVM because the decision boundaries are linear and SVM is a linear classifier.  The next two decision boundaries are similar, but the last image on the very right performed better ($.85 > .78$) and looks like it has a lot more noise assoicated with it.  That extra noise and layers is the result of the randomness in the random forest, which generally performs better than the single decision tree, which is the middle image..
 
 %
 \begin{center}
@@ -553,6 +556,12 @@ $$
 \vspace{.15in}
 
 
+We can further reduce the above because we are assuming $\Sigma_i, \Sigma_j$ are diagonal matrices and thus the features are assumed to be conditionally independent.  Therefore we can use the univariate Gaussian distribution of each individual feature.
+
+$$
+q(x_j) = \frac{1}{\sqrt{2\pi\sigma^2}}\exp(-\frac{(x_j-\mu)^2}{2\mu^2})
+$$
+
 
 Now we will estimate the mean vector and the sample covariance matrices for two classes using the training data (hint: you can use sample mean and sample covariance vector). Report the misclassification rate (error rate) over the training set and over the testing set averaged over the 100 random train/test splits by using different value of splitting ratio $p$. Explain and compare the performance of each classifier.
 
@@ -560,11 +569,54 @@ After implementing these methods, you should evaluate your algorithm on the give
 
 Please implement the algorithm {\bf from scratch} yourself. Make sure to provide code, results (required above) together with necessary explanations to your results. 
 
+The below is a summary of my train and test misclassification rates.
+
+\vspace{.15in}
+\begin{tabular}{lrrr}
+\toprule
+p &  train &  test \\
+\midrule
+0.1 &   0.50 &  0.50 \\
+0.2 &   0.50 &  0.50 \\
+0.5 &   0.47 &  0.47 \\
+0.8 &   0.29 &  0.29 \\
+0.9 &   0.19 &  0.19 \\
+\bottomrule
+\end{tabular}
+\vspace{.15in}
+
+The classifier was able to improve it's error rate as it used more of the data for training.  The 50\% for p=.01, 02 is intersting.  It turns out that it was predicting class 0 for all instances.  It is also interesting that training and testing error rate is equal for each classifier.  I assumed this to be an error and that the training error rate woulb be less than the testing error rate, but after inspection it appears this is correct.
+
 \item (10 points) Now repeat the classification again using $K$-nearest neighbors, for $K = 5, 10, 15, 30$.  Repeat 100 times: split the dataset into two parts randomly, use $p$ portion for training and the other $1 - p$ portion for testing. Let $p$ change from 0.1, 0.2, 0.5, 0.8, 0.9. Report the training error and testing error for each case.
 
-For this part, you may use any package that you like.  Make sure to provide code, results (required above) together with necessary explanations to your results. 
+\vspace{.15in}
+\begin{tabular}{lrrrrrrrr}
+\toprule
+{} & \multicolumn{2}{l}{k=5} & \multicolumn{2}{l}{k=10} & \multicolumn{2}{l}{k=15} & \multicolumn{2}{l}{k=30} \\
+{} & train &  test & train &  test & train &  test & train &  test \\
+p   &       &       &       &       &       &       &       &       \\
+\midrule
+0.1 &  0.05 &  0.09 &  0.09 &  0.13 &  0.09 &  0.11 &  0.14 &  0.16 \\
+0.2 &  0.03 &  0.06 &  0.06 &  0.09 &  0.06 &  0.08 &  0.10 &  0.11 \\
+0.5 &  0.02 &  0.04 &  0.04 &  0.05 &  0.04 &  0.05 &  0.06 &  0.07 \\
+0.8 &  0.02 &  0.03 &  0.03 &  0.04 &  0.03 &  0.04 &  0.05 &  0.05 \\
+0.9 &  0.02 &  0.03 &  0.03 &  0.03 &  0.03 &  0.03 &  0.05 &  0.05 \\
+\bottomrule
+\end{tabular}
+\vspace{.15in}
+
+Wow, Knn performs much better than Bayes.  I was not expecting that.  It follows a similar pattern as Bayes in that it performs better the larger amount of data it has to train with, but it outperforms the best Bayes classifier when it uses only 10\% of the data to train, that is amazing.  Unfortunately, it is a very slow algorithm.  Performing the iterations took significantly longer for Knn and using this in a real time situation with many more data points with many more models does not seem to be realistic no matter how well it performs.
+
+
+Focusing only on Knn it is also noteworthy that 5 neighbors performed better than the models using more neighbors.  
+
+\vspace{.25in}
+
+Thank you for all your hard work.  I enjoyed the class!  \smiley{}
 
 \end{enumerate}
+
+
 
 
 \label{finalpage}
