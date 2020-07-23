@@ -1,0 +1,77 @@
+---
+title: "Untitled"
+author: "Jeff TIlton"
+date: "July 20, 2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r ridge}
+library("glmnet")
+library(tidyverse)
+train = as_data_frame(read.csv("Q1_training_.csv", header=TRUE))
+test = as_data_frame(read.csv("Q1_testing_.csv", header=TRUE))
+
+x_multi = as.matrix(train[,4:length(train)])
+y_multi = as.matrix(train[2])
+
+new_x = as.matrix(test[,4:length(test)])
+
+ridge2_cv <- cv.glmnet(x = x_multi, y = y_multi,
+                       ## type.measure: loss to use for cross-validation.
+                       type.measure = "deviance",
+                       ## K = 10 is the default.
+                       nfold = 10,
+                       ## Multinomial regression
+                       family = "multinomial",
+                       ## ‘alpha = 1’ is the lasso penalty, and ‘alpha = 0’ the ridge penalty.
+                       alpha = 0)
+best_ridge_coef2 <- do.call(cbind, coef(ridge2_cv, s = ridge2_cv$lambda.min))
+best_ridge_weights2 <- 1 / abs(as.matrix(best_ridge_coef2)[-1,])
+
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r adaptive_lasso, echo=FALSE}
+
+alasso2_cv <- cv.glmnet(x = x_multi, y = y_multi,
+                     ## type.measure: loss to use for cross-validation.
+                     type.measure = "deviance",
+                     ## K = 10 is the default.
+                     nfold = 10,
+                     ## Multinomial regression
+                     family = "multinomial",
+                     ## ‘alpha = 1’ is the lasso penalty, and ‘alpha = 0’ the ridge penalty.
+                     alpha = 1,
+                     ##
+                     ## penalty.factor: Separate penalty factors can be applied to each
+                     ##           coefficient. This is a number that multiplies ‘lambda’ to
+                     ##           allow differential shrinkage. Can be 0 for some variables,
+                     ##           which implies no shrinkage, and that variable is always
+                     ##           included in the model. Default is 1 for all variables (and
+                     ##           implicitly infinity for variables listed in ‘exclude’). Note:
+                     ##           the penalty factors are internally rescaled to sum to nvars,
+                     ##           and the lambda sequence will reflect this change.
+                     penalty.factor = best_ridge_weights2,
+                     type.multinomial = "grouped",
+                     keep = TRUE)
+## Penalty vs CV MSE plot
+plot(alasso2_cv)
+```
+
+```{r predict}
+y_multi_pred_class <- as.numeric(predict(alasso2, newx = new_x, type = "class", s = alasso2_cv$lambda.min))
+write.csv(y_multi_pred_class, "adaptive_lasso.csv")
+```

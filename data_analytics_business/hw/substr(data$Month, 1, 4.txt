@@ -1,0 +1,1 @@
+substr(data$Month, 1, 4)

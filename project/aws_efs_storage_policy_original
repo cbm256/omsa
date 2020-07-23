@@ -1,0 +1,32 @@
+{
+    "Version": "2012-10-17",
+    "Id": "efs-policy-wizard-49d383ac-e33b-4b6e-b231-3c432fcb8c63",
+    "Statement": [
+        {
+            "Sid": "efs-statement-bec2bccb-8f08-416d-ac8f-ed399454ef1f",
+            "Effect": "Deny",
+            "Principal": {
+                "AWS": "*"
+            },
+            "Action": "*",
+            "Resource": "arn:aws:elasticfilesystem:us-west-2:764891335403:file-system/fs-5f7055f5",
+            "Condition": {
+                "Bool": {
+                    "aws:SecureTransport": "false"
+                }
+            }
+        },
+        {
+            "Sid": "efs-statement-69d41726-12ca-4120-9294-f61e88d4bddb",
+            "Effect": "Allow",
+            "Principal": {
+                "AWS": "*"
+            },
+            "Action": [
+                "elasticfilesystem:ClientMount",
+                "elasticfilesystem:ClientRootAccess"
+            ],
+            "Resource": "arn:aws:elasticfilesystem:us-west-2:764891335403:file-system/fs-5f7055f5"
+        }
+    ]
+}

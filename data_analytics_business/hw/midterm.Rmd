@@ -1,0 +1,69 @@
+---
+title: "midterm"
+author: "Jeff TIlton"
+date: "March 7, 2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+
+```{r college}
+
+library('ISLR')
+data("College")
+model = lm('Personal ~ Room.Board', data=College)
+summary(model)
+
+log_lin = lm('log(Personal) ~ Room.Board', data=College)
+summary(log_lin)
+
+log_log = lm('log(Personal) ~ log(Room.Board)', data=College)
+summary(log_log)
+
+lin_log = lm('Personal ~ log(Room.Board)', data=College)
+summary(lin_log)
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r binary, echo=TRUE}
+b = read.csv("binary.csv", header = TRUE)
+head(b)
+
+lr = glm(admit ~ gre + gpa, data = b, family = "binomial")
+summary(lr)
+
+p = predict(lr, b)
+tab = table(p, b$admit)
+
+library(nnet)
+binary = read.csv("binary.csv", header = TRUE)
+mymodel = multinom(admit ~., data = binary)
+p = predict(mymodel, binary)
+tab = table(p, binary$admit)
+
+
+library(ROCR)
+pred = predict(mymodel, binary, type='prob')
+pred = prediction(pred, binary$admit)
+eval = performance(pred, 'acc')
+
+
+roc = performance(pred, 'tpr', 'fpr')
+auc = performance(pred, 'auc')
+unlist(slot(auc, 'y.values'))
+
+```
+
+```{r berkshire, echo=TRUE}
+berk = read.csv("Berkshire.csv", header = TRUE)
+
+sd(berk$BrkRet)
+
+```

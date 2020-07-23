@@ -1,0 +1,65 @@
+---
+title: "Q03b"
+output: html_notebook
+---
+
+
+```{r}
+library("glmnet")
+library(tidyverse)
+train = as_data_frame(read.csv("Shiptrain-1.csv", header=FALSE))
+test = as_data_frame(read.csv("Shiptest-1.csv", header=FALSE))
+
+train_scaled = as_data_frame(read.csv("x_train_scaled.csv"))
+test_scaled = as_data_frame(read.csv("x_test_scaled.csv"))
+
+#reference:https://rpubs.com/kaz_yos/alasso
+best_ridge_coef = as.numeric(list(2.39337891e-01, -7.02761454e-02,  4.92905937e-07, -3.05300900e-05,
+        2.60179532e-05, -9.88008006e-04,  3.56041953e-05, -3.38650670e-03,
+        1.67832322e-01,  1.82535076e-02, -2.08418202e-01, -6.30955604e-04,
+        1.54339402e-01))
+penalty_factor = 1 / abs(best_ridge_coef)
+
+
+
+adaptive_lasso = cv.glmnet(x = as.matrix(as_data_frame(train_scaled[,2:14])), y = as.matrix(as_data_frame(train[,14])),
+                        ## type.measure: loss to use for cross-validation.
+                        type.measure = "mse",
+                        ## K = 10 is the default.
+                        nfold = 10,
+                        ## ‘alpha = 1’ is the lasso penalty, and ‘alpha = 0’ the ridge penalty.
+                        alpha = 1,
+                        ##
+                        ## penalty.factor: Separate penalty factors can be applied to each
+                        ##           coefficient. This is a number that multiplies ‘lambda’ to
+                        ##           allow differential shrinkage. Can be 0 for some variables,
+                        ##           which implies no shrinkage, and that variable is always
+                        ##           included in the model. Default is 1 for all variables (and
+                        ##           implicitly infinity for variables listed in ‘exclude’). Note:
+                        ##           the penalty factors are internally rescaled to sum to nvars,
+                        ##           and the lambda sequence will reflect this change.
+                        penalty.factor = penalty_factor,
+                        ## prevalidated array is returned
+                        keep = TRUE)
+
+plot(adaptive_lasso)
+
+
+```
+
+
+```{r}
+adaptive_lasso$lambda.min
+```
+
+```{r}
+coef(adaptive_lasso, s = adaptive_lasso$lambda.min)
+```
+```{r}
+
+
+yhat = predict(adaptive_lasso,type="response",newx=as.matrix(as_data_frame(test_scaled[,2:14])))
+final = data.frame(pred = yhat, actual = test[,14])
+mean((final$X1 - final$V14)^2)
+```
+

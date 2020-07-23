@@ -1,0 +1,34 @@
+# Convolutional LSTM Network: A Machine Learning Approach for Precipitation Nowcasting
+## Experiments show that the ConvLSTM network captures spatiotemporal correlations better and consistently outperforms the FC-LSTM and the state of the art operational ROVER algorithm for precipitation and nowcasting.
+
+### Why important
+Precise and timely prediction of rainfall instnsity in alocal region in a relatively short tme span (0-6hrs).
+Forecasting resolution and time accuracy required for nowcasting is much higher than traditional forescasting tasks like weekly average temperature prediction.
+
+
+### Existing methods
+#### 2 classes
+- Numerical weather Prediction (NWP), requires comples and meticulous simulation of the physical equations in the atmosphere model.  
+- Extrapolation type methods -  faster and more accurate.
+
+"In essence, precipitation nowcasting is a spatiotemporal sequence forecasting problem
+with the sequence of past radar maps as input and the sequence of a fixed number (usually larger
+than 1) of future radar maps as output."
+
+We can do a multi input multi output model approach for multiple timesteps ahead.
+
+
+### Requirements for deep learning
+- reasonable end-to-end model 
+- sufficient data
+
+We have sufficient data in precipitation.
+
+### Problem
+Goal is to use previously abserved radar echo sequence to forecast a fixed lenfth of the future radar maps in a local region.  From the machine learning prespective this problem can be regarded as a spatiotemporal sequence forecasting problem.
+
+### ConvLSTM
+inputs, cell outputs, hidden states and gates are 3D tensors whose last 2 dimensions are spatial dimensions.  The ConvLSTM determines the future state of a certain cell in the grid by the inputs and past states of its local neighbors.
+
+If we view the states as the hidden representations of moving objects a ConvLSTM with a larger transitional kernel should be able to capture faster motions while one with a smaller kernel can capture slower motions.
+

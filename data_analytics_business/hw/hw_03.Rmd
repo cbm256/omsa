@@ -1,0 +1,201 @@
+---
+title: "HW 3"
+output: html_notebook
+---
+
+
+```{r}
+ad = read.csv('Advertising_Updated.csv')
+
+lm <- lm(Sales~., data=ad)
+new.dat <- data.frame(TV=200, Radio=10, Newspaper=20)
+
+predict(lm, newdata = new.dat, interval = "confidence")
+```
+# Q.1
+
+```{r}
+library(dplyr)
+library(magrittr)
+data = read.csv('KAG.csv', stringsAsFactors = FALSE)
+
+head(data)
+
+
+
+group_by(data, ad_id) %>% 
+  summarise(., cpc = sum(CPC), imp = sum(Impressions)) %>% 
+  filter(cpc < 1) %>% 
+  arrange(., cpc, desc(imp))
+
+
+
+```
+The ad among ads with cpc = 0 that led to the most impressions is 1121094.
+
+# Q.2
+```{r}
+group_by(data, campaign_id) %>% 
+  summarise(., spent = sum(Spent), imp = sum(Impressions), ) %>% 
+  mutate(., cpm=spent/imp) %>%
+  arrange(., cpm)
+```
+
+Campaign 1178 was the least efficient on brand awareness on average.
+
+# Q.3
+
+```{r}
+
+summarise(data, spent = sum(Spent), tc = 5*sum(CostPerConv_Total), ac = 50*sum(CostPerConv_Approved), ) %>% 
+  mutate(., roas=(tc+ac)/spent) %>%
+  arrange(., roas)
+```
+ROAS is 34.32.
+
+
+```{r}
+library(ggplot2)
+
+d = filter(data, interest==15 | interest==21 | interest==101) %>%
+  mutate(., interest=factor(interest)) %>%
+  group_by(., interest, gender) %>% 
+  mutate(., roas=(CostPerConv_Total+CostPerConv_Approved)/Spent) %>%
+  filter(!is.na(roas)) %>%
+  arrange(., roas)
+
+ggplot(d, aes(x = interest, y = roas, group = interest)) + 
+  geom_boxplot() +
+  labs(x="Interest ID", y = "ROAS")
+```
+
+```{r}
+filter(data, campaign_id == 1178) %>%
+  mutate(., roas=(CostPerConv_Total+CostPerConv_Approved)/Spent, gender=factor(gender)) %>%
+  filter(!is.na(roas)) %>%
+  group_by(., gender) %>% 
+  summarise(., mn = mean(roas), md = median(roas)) 
+  
+```
+
+# Q.5
+```{r}
+library(readr)
+library(tidyverse)
+library(correlationfunnel)
+library(DataExplorer)
+library(WVPlots)
+library(ggthemes) 
+library(ROCR)
+library(caret)
+library(corrplot)
+
+
+
+
+```
+
+## a)
+
+```{r}
+data = read.csv('advertising1.csv', stringsAsFactors = TRUE)
+
+head(data)
+
+
+
+ggplot(data, aes( y = Daily.Time.Spent.on.Site, )) + 
+  geom_boxplot() +
+  labs(y = "Daily.Time.Spent.on.Site")
+
+ggplot(data, aes( y = Daily.Internet.Usage, )) + 
+  geom_boxplot() +
+  labs(y = "Daily.Internet.Usage")
+
+ggplot(data, aes( y = Area.Income, )) + 
+  geom_boxplot() +
+  labs(y = "Area.Income")
+
+```
+## b)
+
+```{r}
+data
+
+ggplot(data=data, aes(x=Male, y=Clicked.on.Ad)) +
+  geom_bar(stat="identity")
+
+ggplot(data=data, aes(x=Age, y=Clicked.on.Ad)) +
+  geom_bar(stat="identity")
+```
+
+## c)
+
+```{r}
+ggplot(data, aes( x= factor(Clicked.on.Ad),y = Age, )) + 
+  geom_boxplot() +
+  labs(y = "Age")
+
+
+ggplot(data, aes( x= factor(Clicked.on.Ad),y = Area.Income, )) + 
+  geom_boxplot() +
+  labs(y = "Area.Income")
+
+
+ggplot(data, aes( x= factor(Clicked.on.Ad),y = Daily.Internet.Usage, )) + 
+  geom_boxplot() +
+  labs(y = "Daily.Internet.Usage")
+
+
+ggplot(data, aes( x= factor(Clicked.on.Ad),y = Daily.Time.Spent.on.Site, )) + 
+  geom_boxplot() +
+  labs(y = "Daily.Time.Spent.on.Site")
+```
+## d)  
+
+Based on our preliminary boxplots, I would expect an older person to be more likely to click on the ad than someone younger.
+
+
+
+# Q.6
+
+
+```{r}
+ggplot(data, aes(x=Age, y=Area.Income, shape=factor(Clicked.on.Ad), color=factor(Clicked.on.Ad))) +
+  geom_point()
+```
+
+
+
+Based on this plot I would not expect a 32 year old making an income of $62,000 to click on the add, because it seems like clicks have a positive correlation with age and negative correlation with income.  The majority of clicks happer at ages > 32 and incomes < $60,000
+
+```{r}
+ggplot(data, aes(x=Age, y=Daily.Time.Spent.on.Site, shape=factor(Clicked.on.Ad), color=factor(Clicked.on.Ad))) +
+  geom_point()
+```
+
+Based on this plot, I would not expect a 50-year-old person who spends 60 minutes daily on the site to click on the ad because there seems to be a negative correlation between time spent on the site and clicks.  People that spend more time on the site are less likely to click on the ad.
+
+## Q.7
+```{r}
+data %>%
+mutate_if(is.numeric,as.numeric)%>%
+binarize() %>%
+correlate(Clicked.on.Ad__1) %>%
+plot_correlation_funnel(interactive = TRUE, alpha = 0.7)
+```
+
+### b)
+```{r}
+model = glm(Clicked.on.Ad~Daily.Internet.Usage + Daily.Time.Spent.on.Site + Age + Area.Income,data=data,family=binomial())
+summary(model)
+```
+## Q.8
+```{r}
+
+data$predict = predict(model, data, type="response")>=.8
+data$test = data$Clicked.on.Ad==1
+confusionMatrix(factor(data$predict), factor(data$test))
+
+
+```

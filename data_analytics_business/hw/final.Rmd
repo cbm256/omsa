@@ -1,0 +1,179 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Ctrl+Shift+Enter*. 
+
+```{r}
+data = read.csv('direct_marketing.csv')
+data$Male = as.numeric(data$Gender=='Male')
+lm <- lm(AmountSpent~Male+Salary, data=data)
+
+summary(lm)
+```
+
+
+```{r}
+data$Married = as.numeric(data$Married=='Married')
+lm <- lm(AmountSpent~Male+Salary+Married, data=data)
+
+summary(lm)
+
+```
+
+
+```{r}
+library(MASS)
+
+
+Boston
+
+
+Boston$Result = as.numeric(Boston$medv>30)
+lg = glm(Result~.,data=Boston[,-14],family=binomial())
+summary(lg)
+Boston
+ 
+```
+```{r}
+
+
+threshold=0.5
+predicted_values<-ifelse(predict(lg,Boston,type="response")>threshold,1,0)
+actual_values<-Boston$Result
+conf_matrix<-table(predicted_values,actual_values)
+conf_matrix
+```
+
+Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Ctrl+Alt+I*.
+
+When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Ctrl+Shift+K* to preview the HTML file).
+
+The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.
+```{r}
+library(ggExtra)
+library(ROCR)
+library(pROC)
+
+
+roccurve = roc(actual_values~predicted_values)
+auc(roccurve)
+
+
+```
+
+
+
+
+```{r}
+library(PerformanceAnalytics)
+data=read.csv('AMZN.csv')
+data
+data$Date = strptime(data$Date, "%m/%d/%Y")
+data$Date = as.POSIXct(data$Date)
+d= xts(data[,-1],order.by=as.POSIXct(data$Date))
+
+d
+r = Return.calculate(d, method="discrete")
+SharpeRatio(R=r,Rf=.0019)
+
+d
+```
+
+```{r}
+sum(r[2:length(r),1])
+
+```
+
+
+
+```{r}
+library(stargazer)
+data = read.csv("UPS_KO.csv")
+
+ups = lm(UPS ~ Mkt_RF+ SMB + HML, data =data) 
+
+ko = lm(KO ~ Mkt_RF+ SMB + HML, data =data) 
+
+summary(ups)
+
+
+```
+```{r}
+
+summary(ko)
+```
+```{r}
+library(dplyr)
+data <- read.csv("KAG_conversion_data_wrangled.csv",stringsAsFactors = FALSE)
+min(data$CPC)
+
+nrow(filter(data, CPC>=1))/nrow(data) * 100
+data
+```
+
+```{r}
+b = select(data, campaign_id, Spent, ad_id, Impressions) %>%
+  filter(., Spent == 0) %>%
+  group_by(., ad_id)
+  
+summarise(b, s=sum(Impressions))
+```
+```{r}
+b = select(data, campaign_id, Spent, ad_id, Impressions) %>%
+  filter(., Spent == 0) %>%
+  group_by(., ad_id)
+  
+summarise(b, count=n)
+```
+
+
+```{r}
+library(magrittr)
+b = select(data, campaign_id, age, Impressions) %>%
+  filter(., campaign_id == 936) %>%
+  group_by(.,age) %>%
+  mutate(., cs=cumsum(Impressions)) 
+
+summarise(b, mn = mean(Impressions), cs=max(cs))
+
+
+
+```
+
+```{r}
+b = filter(data, campaign_id==916 | campaign_id==936 | campaign_id == 1178) %>%
+  group_by(campaign_id)
+summarise(b,mean(CPC))
+```
+
+```{r}
+#Inputs to our MM1 model
+
+
+i_mm1 <- NewInput.MM1(lambda = 125.71, mu = 127.05, n = 100)
+
+## Build the model
+o_mm1 <- QueueingModel(i_mm1)
+
+Report(o_mm1)
+```
+
+
+
+
+```{r}
+library(fpp2)
+data = read.csv("Daily_Demand.csv" )
+data = select(data, Date, total)
+data$Date = strptime(data$Date, "%Y-%m-%d")
+data$Date = as.POSIXct(data$Date)
+d= xts(data[,2],order.by=as.POSIXct(data$Date))
+d
+fit = ses(d, alpha = .01, h = 5)
+accuracy(fit)
+```
+

@@ -1,0 +1,124 @@
+---
+title: "hw01"
+author: "Jeff TIlton"
+date: "May 23, 2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+
+```{r data}
+library(dplyr)
+library(queueing)
+library(readr)
+```
+
+
+
+```{r bspline-classify, echo=FALSE}
+library(randomForest)
+
+train_data = read_csv("ECG200TRAIN.csv",col_names=FALSE )
+test_data = read_csv("ECG200TEST.csv",col_names=FALSE )
+
+
+bspline = function(data){
+  
+  train = select(data,-1)
+  x = seq(0,1,length=ncol(train))
+  library(splines)
+  knots = seq(0,1,length.out = 8)
+  B = bs(x, knots = knots, degree = 3)[,1:10]
+  Bcoef = matrix(0,dim(train)[1],10)
+  for(i in 1:dim(train)[1])
+  {
+    Bcoef[i,] = solve(t(B)%*%B)%*%t(B)%*%t(as.matrix(train[i,]))
+  }
+  return(Bcoef)
+
+}
+
+Bcoef_train = bspline(train_data)
+Bcoef_test = bspline(test_data)
+
+lab_train = as.character(train_data$X1)
+lab_test = as.character(test_data$X1)
+lab_train = as.factor(lab_train)
+lab_test = as.factor(lab_test)
+fit = randomForest(lab_train~ .,
+                   data=cbind.data.frame(as.data.frame(Bcoef_train),lab_train))
+pred = predict(fit,Bcoef_test)
+tst = as.factor(lab_test==-1)
+prd = as.factor(pred==-1)
+table(prd,tst)
+
+
+specificity(prd,tst, positive = levels(tst)[2])
+sensitivity(prd,tst,negative = levels(tst)[1])
+
+Xtest = select(test_data, -1)
+x = seq(0,1,length=ncol(Xtest))
+matplot(x,t(Xtest[pred==1,]),type="l",col = "blue",ylab = "y",ylim = c(-4,4),main="Classification using B-spline coefficients")
+X2 = Xtest[pred == -1,]
+for(i in 1:length(pred[pred==1]))
+{
+  lines(x,X2[i,],col = "red")
+}
+
+```
+
+
+```{r fpca-classify, echo=FALSE}
+library(fda)
+train_data = read_csv("ECG200TRAIN.csv",col_names=FALSE )
+test_data = read_csv("ECG200TEST.csv",col_names=FALSE )
+
+fpccoef = function(data){
+  splinebasis = create.bspline.basis(c(0,1),10)
+  train = select(data,-1)
+  smooth = smooth.basis(x,t(train),splinebasis)
+  Xfun = smooth$fd
+  pca = pca.fd(Xfun, 10)
+  var.pca = cumsum(pca$varprop)
+  nharm = sum(var.pca < 0.95) + 1
+  pc = pca.fd(Xfun, nharm)
+  plot(pc$scores[lab==-1,],xlab = "FPC-score 1", ylab = "FPC-score 2",col = "blue",ylim=c(-1,1))
+  points(pc$scores[lab==1,],col = "red")
+  FPCcoef = pc$scores
+  return(FPCcoef)
+}
+
+FPCcoef_train = fpccoef(train_data)
+FPCcoef_test = fpccoef(test_data)
+fit = randomForest(lab_train~ .,
+                   data=cbind.data.frame(as.data.frame(FPCcoef_train),lab_train))
+
+pred = predict(fit,FPCcoef_test)
+tst = as.factor(lab_test==-1)
+prd = as.factor(pred==-1)
+table(prd,tst)
+
+specificity(prd,tst, positive = levels(tst)[2])
+sensitivity(prd,tst,negative = levels(tst)[1])
+
+
+Xtest = select(test_data, -1)
+x = seq(0,1,length=ncol(Xtest))
+matplot(x,t(Xtest[pred==1,]),type="l",col = "blue",ylab = "y",ylim = c(-4,4),main="Classification using FPCA scores")
+X2 = Xtest[pred == -1,]
+for(i in 1:length(pred[pred==1]))
+{
+  lines(x,X2[i,],col = "red")
+}
+
+
+
+```
+
+
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.

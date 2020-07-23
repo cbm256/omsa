@@ -1,0 +1,15 @@
+- Analyze GPM if it falls within the other gridded datasets
+- Create ensembles as outlined by Gridded Ensemble Precipitation and Temperature Estimates for the
+Contiguous United States or Accounting for Uncertainties of the TRMM Satellite Estimates
+- Feed ensembles into trajgru
+
+
+
+https://kevinzakka.github.io/2017/01/10/stn-part1/
+
+
+python -m ipykernel install --name omsa_project --display-name "omsa_project"
+
+# possible architecture solution
+https://datascience.stackexchange.com/questions/29634/how-to-combine-categorical-and-continuous-input-features-for-neural-network-trai
+http://digital-thinking.de/deep-learning-combining-numerical-and-text-features-in-deep-neural-networks/

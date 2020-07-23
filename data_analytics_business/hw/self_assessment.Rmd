@@ -1,0 +1,65 @@
+---
+title: 'Week 7: Self Assessment'
+author: "Jeff TIlton"
+date: "February 25, 2020"
+output:
+  rmarkdown::pdf_document:
+    fig_caption: yes        
+    includes:  
+      in_header: preamble-latex.tex
+---
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, fig.pos= "H")
+```
+
+
+# Question 1
+## a:
+```{r head, echo=FALSE}
+library(xts)
+library(lubridate)
+library(PerformanceAnalytics)
+data = read.csv("Return_Dataset.csv", header = TRUE, stringsAsFactors=FALSE)
+data$Date = as.POSIXct(data$Date)
+data = xts(data[,2:5], order.by=data$Date)
+
+
+head(data, n =10)
+
+
+
+```
+
+## b: 
+```{r plot, echo=FALSE}
+
+chart.CumReturns(data,wealth.index = TRUE, geometric = TRUE, legend.loc="topleft")
+```
+
+ 
+Neither UPS or KO outperform the market at the end of the given period as seen in the cumulative return plot above.  Both stocks outperform the market for brief periods, but the overall cumulative return of the market is greater at the end of the given period than either of the stocks.
+
+## c:
+```{r ratio, echo=FALSE}
+#higher is better
+print(SharpeRatio(data[,2:3], Rf=data$RF))
+print(TreynorRatio(data[,2:3], Rb=data$Mkt, Rf=data$RF))
+
+```
+
+KO has the higher Sharpe ratio (.23 vs .10) and is therefore the better investment when using this metric since the Sharpe ratio is a measure of reward vs risk.
+
+# Question 2
+
+### Types of Market Efficiency
+1.  Weak form - Security prices reflect all information found in past prices and volume
+2.  Semi-Strong Form - Security prices reflect all publicly available information
+3.  Strong-Form - Security prices reflect all information (public and private)
+
+# Question 3
+
+### Types of Behavioral Bias
+1. Overconfidence - Tendency to overestimate one's ability
+2. Loss aversion - Tendency of individuals to seek pride and avoid regret in their decisions
+3.  Recency effect - People tend to overemphasize a recent information when making investment decisions
+4. Anchoring - Individuals tend to take action based on a single fact or figure that should have little bearing on their decision while ignoring more important information.

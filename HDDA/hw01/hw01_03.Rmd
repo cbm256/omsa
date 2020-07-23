@@ -1,0 +1,224 @@
+---
+title: "hw01"
+author: "Jeff TIlton"
+date: "May 23, 2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+
+```{r data}
+library(dplyr)
+library(queueing)
+library(readr)
+
+
+data = read_csv("P04.csv", col_names=c("year","value"))
+data
+
+x = data$year
+y = data$value
+```
+
+
+```{r cspline}
+
+
+
+cspline = function(x,y,knots){
+  k = seq(0,1,length.out = knots-2)
+  k = k[2:(knots-3)]
+  h1 = rep(1,length(x))
+  h2 = x
+  h3 = x^2
+  h4 = x^3
+  H = cbind(h1, h2, h3, h4)
+  row_names = c('h1','h2','h3','h4')
+  for (i in 1:(knots-4)){
+    h = (x-k[i])^3
+    h[h <= 0] = 0
+    H = cbind(H,h)
+    name = paste("h", i+4, sep = "")
+    row_names = append(row_names, name)
+  }
+  B=solve(t(H)%*%H)%*%t(H)%*%y
+  row.names(B) = row_names
+  result = list("B"=B,"H"=H)
+  return(result)
+}
+
+
+
+cv.cspline = function(x,y, knots){
+  
+  er = rep(0, length(y)-1)
+  mse = rep(0, (knots-5))
+  best_k = 0 
+  best_mse = Inf
+  best_k = 0
+  for(j in 6:knots)
+  {
+    
+    for(i in 1:(length(y)-1))
+    {
+      
+      X1=x[-i];
+      Y1=y[-i];
+      r = cspline(X1,Y1,j)
+      B = r$B
+      H = r$H
+      yhat=H%*%B
+      er[i]=y[i]-yhat[i]
+    }
+    m = mean(er^2)
+    mse[j-5]= m
+    if(m<best_mse){
+      best_k = j
+      best_mse =m
+    }
+  }
+  result = list("knot" = best_k, "mse"= mse)
+  return(result)
+}
+
+data = read_csv("P04.csv", col_names=c("year","value"))
+
+
+y = data$value
+
+y = data$value
+x = seq(0,1,length.out = length(y))
+cv.cspline(x,y,15)
+
+
+r = cspline(x,y,15)
+H=r$H
+B=r$B
+
+plot(x,y)   
+lines(x,H%*%B,col = "red",lwd = 3)
+
+
+```
+
+
+```{r bspline, echo=FALSE}
+library(splines)
+
+bspline = function(x,y,knots,degree=2){
+  
+  cols = knots+degree-1
+  knots = seq(0,1,length.out = knots)
+  
+  B = bs(x, knots = knots, degree = degree)[,1:cols]
+  yhat = B%*%solve(t(B)%*%B)%*%t(B)%*%y
+  result = list("B" = B, "yhat"=yhat)
+  return(result)
+}
+
+
+cv.bspline = function(x,y, knots){
+  
+  er = rep(0, length(y)-1)
+  mse = rep(0, (knots-5))
+  best_k = 0 
+  best_mse = Inf
+  best_k = 0
+  for(j in 6:knots)
+  {
+    
+    for(i in 1:(length(y)-1))
+    {
+      
+      X1=x[-i];
+      Y1=y[-i];
+      r = bspline(X1,Y1,j,degree=2)
+      B = r$B
+      yhat = B%*%solve(t(B)%*%B)%*%t(B)%*%y[-length(y)]
+      
+      er[i]=y[i]-yhat[i]
+    }
+    m = mean(er^2)
+    mse[j-5]= m
+    if(m<best_mse){
+      best_k = j
+      best_mse =m
+    }
+  }
+  result = list("knot" = best_k, "mse"= mse)
+  return(result)
+}
+y = data$value
+x = seq(0,1,length.out = length(y))
+cv.bspline(x,y,15)
+
+r = bspline(x,y,14)
+yhat = r$yhat
+plot(x,y)   
+lines(x,yhat,col = "red",lwd = 3)
+```
+
+
+```{r sspline, echo=FALSE}
+library(splines)
+y = data$value
+x = seq(0,1,length.out = length(y))
+yhat<-smooth.spline(y, cv=TRUE)
+yhat
+plot(x,y)   
+lines(x,yhat$y,col = "red",lwd = 3)
+```
+
+
+
+```{r kernel, echo=FALSE}
+
+
+ker = function(x,y){
+  kerf = function(z){exp(-z*z/2)/sqrt(2*pi)}
+  h1=seq(1,4,0.1)
+  er = rep(0, length(y))
+  mse = rep(0, length(h1))
+  for(j in 1:length(h1))
+  {
+    h=h1[j]
+    for(i in 1:length(y))
+    {
+      X1=x;
+      Y1=y;
+      X1=x[-i];
+      Y1=y[-i];
+      z=kerf((x[i]-X1)/h)
+      yke=sum(z*Y1)/sum(z)
+      er[i]=y[i]-yke
+    }
+    mse[j]=mean(er^2)
+  }
+  
+  h = h1[which.min(mse)]
+  N=1000
+  xall = seq(min(x),max(x),length.out = N)
+  f = rep(0,N);
+  for(k in 1:N)
+  {
+    z=kerf((xall[k]-x)/h)
+    f[k]=sum(z*y)/sum(z);
+  }
+  result = list("mse"=min(mse), "f"=f, "xall"=xall, 'h'=h)
+  return(result)
+  
+}
+y = data$value
+x= data$year
+f = ker(x,y)
+h=f$h
+plot(x,y,col = "black")
+lines(f$xall, f$f, col = "red",lwd = 3)
+f
+f$mse
+```
+

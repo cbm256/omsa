@@ -1,0 +1,111 @@
+\documentclass[12pt,letterpaper]{article}
+\usepackage{fullpage}
+\usepackage[top=2cm, bottom=4.5cm, left=2.5cm, right=2.5cm]{geometry}
+\usepackage{amsmath,amsthm,amsfonts,amssymb,amscd}
+\usepackage{enumerate}
+\usepackage{enumitem}  % You can remove this item if you don't have the enumitem package
+\usepackage{fancyhdr}
+\usepackage{graphicx}
+\usepackage{listings}
+\usepackage{hyperref}
+
+\hypersetup{%
+  colorlinks=true,
+  linkcolor=blue,
+  linkbordercolor={0 0 1}
+}
+ 
+\renewcommand\lstlistingname{Algorithm}
+\renewcommand\lstlistlistingname{Algorithms}
+\def\lstlistingautorefname{Alg.}
+
+\lstdefinestyle{R}{
+    language        = R,
+    frame           = lines, 
+    basicstyle      = \footnotesize,
+    keywordstyle    = \color{blue},
+    stringstyle     = \color{green},
+    commentstyle    = \color{red}\ttfamily
+}
+
+\setlength{\parindent}{0.0in}
+\setlength{\parskip}{0.05in}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Edit these as appropriate for the header!
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newcommand\course{ISyE 8803 HDDA}
+\newcommand\hwnumber{1}                           % Homework Number
+\newcommand\studentname{Clayton Gerstner}         % Name name
+\newcommand\username{cgerstner3}                  % Username
+
+\chead{\textbf{\Large Homework \hwnumber}}        % You can change
+%\chead{\textbf{\Large Midterm Exam}}             % the commented
+%\chead{\textbf{\Large Final Exam}}               % lines for exams
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\pagestyle{fancyplain}
+\headheight 35pt
+\lhead{\studentname \\ \username}
+\rhead{\course \\ \today}
+\lfoot{}
+\cfoot{}
+\rfoot{\small\thepage}
+\headsep 1.5em
+
+\begin{document}
+
+\section*{Question 1}
+
+Question 1 text or summary
+
+\begin{enumerate}[label=\alph*.]  % If you do not have the enumitem package, remove the [label].
+  \item
+    Lorem ipsum, etc. This is an answer to part a of question 1.
+   
+  \item
+    Prove $y = x$:
+    
+    % Here's a completely nonsensical example of math mode formatting:
+    \[
+     \int_\alpha^\beta \Omega^\pi =  \frac{\partial}{\partial x}\sum_{n=1}^K \frac 1 2 \theta_n^2 \sim Bin(0.5)
+    \]
+    
+    Therefore, $\gamma_1 = \rho_3$ and $y = x$
+
+\end{enumerate}
+
+\newpage
+
+\section*{Question 2}
+
+Question 2 text or summary
+
+\begin{enumerate}
+ \item Question 2 part 1 answer
+ 
+ \item
+   Question 2 part 2
+   \begin{itemize}
+    \item itemize unordered list example
+    \item $f_1(x) = \mathbf{4.3002}$
+    \item Adjusted $R^2$: \textbf{-19.322}
+   \end{itemize}
+
+\end{enumerate}
+
+\section*{Question 3}
+
+Question 3 text or summary, about images or plots. There's a commented image inclusion example, for ``hw1\_q3.png'' (It is commented so that the document compiles ``out of the box.'')
+
+\begin{center}
+ %\includegraphics[width=0.8\textwidth]{hw1_q3.png}
+\end{center}
+ 
+ 
+\section*{Question 4}
+
+Question 4 text or summary
+
+\end{document}
